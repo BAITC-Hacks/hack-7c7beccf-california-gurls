@@ -1,4 +1,6 @@
 """Правила ролей. Каждая роль — формальное правило с порогом из config.yaml.
+Второй проход: консолидатор, которому платят ≥N узлов-хабов и до которого доходят деньги ≥M seed,
+повышается до coordinator («сборщик второго уровня»).
 Роли проверяются по приоритету: coordinator → distributor → consolidator → transit →
 terminal → boundary → peripheral. Узел получает первую роль, правило которой выполнено.
 
@@ -26,7 +28,7 @@ def _sat(x: pd.Series, thr: float) -> pd.Series:
     return 0.5 + 0.5 * np.clip(v, 0, 1)
 
 
-def assign_roles(f: pd.DataFrame, cfg: dict) -> pd.DataFrame:
+def assign_roles(f: pd.DataFrame, cfg: dict, edges: pd.DataFrame | None = None) -> pd.DataFrame:
     r = cfg["roles"]
     f = f.copy()
     pr = f.pass_ratio
@@ -60,7 +62,22 @@ def assign_roles(f: pd.DataFrame, cfg: dict) -> pd.DataFrame:
         role[m] = name
         score[m] = scores[name][m]
     f["role"] = role
-    f["role_score"] = score.clip(0, 1).round(3)
+    f["role_score"] = score.clip(0, 1)
+
+    # второй проход: сборщик второго уровня (ему платят узлы, уже признанные хабами)
+    f["hub_payers"] = 0
+    f["second_level"] = False
+    if edges is not None:
+        hubs = set(f.index[f.role.isin(["coordinator", "consolidator", "distributor"])])
+        hp = edges[edges.src.isin(hubs)].groupby("dst").src.nunique()
+        f["hub_payers"] = hp.reindex(f.index).fillna(0).astype(int)
+        c = r["coordinator"]
+        m2 = (f.role == "consolidator") & (f.hub_payers >= c["min_hub_payers"]) & (f.seed_reach >= c["min_seed_reach"])
+        f.loc[m2, "role"] = "coordinator"
+        f.loc[m2, "second_level"] = True
+        f.loc[m2, "role_score"] = (_sat(f.hub_payers, c["min_hub_payers"]) * 0.6
+                                   + _sat(f.seed_reach.clip(lower=1), c["min_seed_reach"]) * 0.4)[m2]
+    f["role_score"] = f.role_score.clip(0, 1).round(3)
     f["evidence"] = [evidence(row) for row in f.itertuples()]
     return f
 
@@ -72,7 +89,10 @@ def evidence(x) -> str:
     if x.inflow_incomplete and not x.is_seed and not np.isnan(x.pass_ratio):
         pr = f", отдаёт в {x.pass_ratio:.1f}× больше видимого входа — есть внешние источники"
     r = x.role
-    if r == "coordinator":
+    if r == "coordinator" and x.second_level:
+        s = (f"Сборщик 2-го уровня: платят {x.hub_payers} узлов-хабов (сборщики/распределители), "
+             f"до узла доходят деньги {x.seed_reach} seed; вход {money(x.in_sum)}{pr}")
+    elif r == "coordinator":
         s = (f"Признаки координации: получает от {x.in_deg} плательщиков ({money(x.in_sum)}), "
              f"рассылает {x.out_deg} получателям ({money(x.out_sum)}){seed_note}")
     elif r == "distributor":
@@ -95,4 +115,6 @@ def evidence(x) -> str:
         else:
             s = (f"Признаков роли не выявлено: вход {x.in_deg} ({money(x.in_sum)}), "
                  f"выход {x.out_deg} ({money(x.out_sum)}){seed_note}")
+    if x.reciprocal and len(s) < 160:
+        s += f"; встречные переводы: {x.reciprocal} контрагент(ов)"
     return s[:200]

@@ -92,3 +92,25 @@ def simulate_removal(gids: list[str] | None = None, top_n: int | None = None) ->
     return {"removed": gids, "before": before, "after": after,
             "flow_cut_share": round(1 - after["total_flow_kzt"] / max(before["total_flow_kzt"], 1), 3),
             "reach_cut_share": round(1 - after["nodes_reachable_from_seed"] / max(before["nodes_reachable_from_seed"], 1), 3)}
+
+
+def find_cycles(gid: str, max_len: int = 4) -> dict:
+    """Возвратные потоки через узел: цепочки, где деньги возвращаются к отправителю."""
+    G = store.graph()
+    if gid not in G:
+        return {"error": f"узел {gid} не найден"}
+    H = G.subgraph(nx.single_source_shortest_path_length(G.to_undirected(as_view=True), gid, cutoff=max_len))
+    cyc = [c for c in nx.simple_cycles(H, length_bound=max_len) if gid in c]
+    out = []
+    for c in sorted(cyc, key=len)[:15]:
+        k = c.index(gid)
+        c = c[k:] + c[:k]
+        hops = list(zip(c, c[1:] + c[:1]))
+        out.append({"chain": c + [gid], "sums_kzt": [G[u][v]["sum_kzt"] for u, v in hops],
+                    "roles": [G.nodes[n]["role"] for n in c]})
+    return {"gid": gid, "n_cycles": len(cyc), "cycles": out}
+
+
+def next_requests(n: int = 15) -> list:
+    """Какие данные запросить следующими, чтобы закрыть белые пятна выгрузки."""
+    return store.q("SELECT * FROM next_requests LIMIT %s", (min(int(n), 50),))

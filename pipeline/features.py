@@ -80,6 +80,16 @@ def node_features(nodes, edges, tx, G, cfg) -> pd.DataFrame:
     bc = nx.betweenness_centrality(G, weight=None, k=min(500, len(G)), seed=42)
     f["betweenness"] = pd.Series(bc)
 
+    # возвратные потоки: сколько коротких циклов проходит через узел (деньги возвращаются к отправителю)
+    cyc_count, cyc_len2 = {}, {}
+    for c in nx.simple_cycles(G, length_bound=cfg.get("max_cycle_len", 4)):
+        for n in c:
+            cyc_count[n] = cyc_count.get(n, 0) + 1
+            if len(c) == 2:
+                cyc_len2[n] = cyc_len2.get(n, 0) + 1
+    f["cycles"] = pd.Series(cyc_count).reindex(f.index).fillna(0).astype(int)
+    f["reciprocal"] = pd.Series(cyc_len2).reindex(f.index).fillna(0).astype(int)
+
     # компонента связности
     comp = {}
     for i, c in enumerate(sorted(nx.weakly_connected_components(G), key=len, reverse=True)):

@@ -45,6 +45,38 @@ def why(x) -> str:
         parts.append(f"{x.fast_share:.0%} входящих уходит дальше за ≤2 дня")
     if x.max_payers_same_day >= 3:
         parts.append(f"до {x.max_payers_same_day} плательщиков в один день")
+    if x.cycles:
+        parts.append(f"участвует в {x.cycles} возвратных цепочках (деньги возвращаются к отправителю)")
     if x.is_seed:
         parts.append("уже известен (seed), приоритет понижен")
     return "; ".join(parts)
+
+
+def next_requests(f: pd.DataFrame, edges: pd.DataFrame, n: int) -> pd.DataFrame:
+    """Оценка полноты: какие данные запросить следующими, чтобы закрыть белые пятна.
+    1) исходящие узлов 4-го колена, куда пришли заметные деньги от приоритетных узлов;
+    2) входящие из-за пределов выборки для узлов, которые отдают больше, чем получили."""
+    prio = f.priority_score
+    payer_prio = edges.assign(p=edges.src.map(prio)).groupby("dst").p.max()
+    rows = []
+    b = f[f.role == "boundary"].copy()
+    b["payer_prio"] = payer_prio.reindex(b.index).fillna(0)
+    b["score"] = b.in_sum.rank(pct=True) * 0.5 + b.payer_prio * 0.3 + b.seed_reach.rank(pct=True) * 0.2
+    for gid, x in b.nlargest(n // 2, "score").iterrows():
+        rows.append({"gid": gid, "request": "исходящие переводы (узел за границей выгрузки)",
+                     "score": round(x.score, 3), "cluster_id": x.cluster_id,
+                     "reason": f"получил {money(x.in_sum)} от {x.in_deg} плательщ., макс. приоритет плательщика "
+                               f"{x.payer_prio:.2f}, seed выше по цепочке: {x.seed_reach}; куда ушли деньги — неизвестно"})
+    g = f[(~f.is_seed) & (f.out_sum > f.in_sum * 1.2) & (f.out_deg > 0)].copy()
+    g["gap"] = g.out_sum - g.in_sum
+    g["score"] = g.gap.rank(pct=True) * 0.6 + g.priority_score * 0.4
+    for gid, x in g.nlargest(n - len(rows), "score").iterrows():
+        rows.append({"gid": gid, "request": "входящие переводы из-за пределов выборки",
+                     "score": round(x.score, 3), "cluster_id": x.cluster_id,
+                     "reason": f"отдал {money(x.out_sum)}, а видимый вход только {money(x.in_sum)}: "
+                               f"не хватает {money(x.gap)} — источник средств неизвестен ({ROLE_RU[x.role]})"})
+    df = pd.DataFrame(rows)
+    # чередуем два типа запросов, чтобы оба были видны в начале списка
+    df["rank_in_type"] = df.groupby("request").score.rank(ascending=False, method="first")
+    return (df.sort_values(["rank_in_type", "score"], ascending=[True, False])
+              .drop(columns="rank_in_type").reset_index(drop=True))

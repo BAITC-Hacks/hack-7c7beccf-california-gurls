@@ -21,6 +21,7 @@
     <nav class="tabs">
       <button data-tab="top" class="active">Приоритеты</button>
       <button data-tab="clusters">Кластеры</button>
+      <button data-tab="gaps">Пробелы</button>
       <button data-tab="chat">Ассистент</button>
     </nav>
     <section id="tab-top" class="tab active">
@@ -31,6 +32,10 @@
       <button id="btn-resilience" class="btn wide">Устойчивость: убрать топ-10</button>
       <div id="resilience"></div>
       <div id="cluster-list" class="list"></div>
+    </section>
+    <section id="tab-gaps" class="tab">
+      <div class="note">Какие данные запросить следующими, чтобы закрыть белые пятна выгрузки</div>
+      <div id="gaps-list" class="list"></div>
     </section>
     <section id="tab-chat" class="tab">
       <div id="chat-log" class="chat-log">

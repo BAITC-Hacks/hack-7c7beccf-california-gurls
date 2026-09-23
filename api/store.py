@@ -12,7 +12,7 @@ DSN = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/m
 NODE_FIELDS = ["gid", "role", "role_score", "cluster_id", "priority_score", "evidence", "depth", "is_seed",
                "in_deg", "out_deg", "in_sum", "out_sum", "pass_ratio", "seed_reach", "seed_payers",
                "fast_share", "max_payers_same_day", "active_days", "truncated", "pagerank", "betweenness",
-               "component"]
+               "component", "cycles", "reciprocal", "hub_payers", "second_level"]
 
 
 def q(sql: str, params=None) -> list[dict]:

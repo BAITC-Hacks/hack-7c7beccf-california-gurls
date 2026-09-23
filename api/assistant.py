@@ -48,6 +48,13 @@ TOOLS_SPEC = [
      "parameters": {"type": "object", "properties": {"gids": {"type": "array", "items": {"type": "string"}},
                     "top_n": {"type": "integer"}}}},
 ]
+TOOLS_SPEC += [
+    {"name": "find_cycles", "description": "Возвратные потоки: цепочки через узел, где деньги возвращаются к отправителю",
+     "parameters": {"type": "object", "properties": {"gid": {"type": "string"}, "max_len": {"type": "integer"}},
+                    "required": ["gid"]}},
+    {"name": "next_requests", "description": "Белые пятна: какие выгрузки запросить дальше и почему",
+     "parameters": {"type": "object", "properties": {"n": {"type": "integer"}}}},
+]
 FUNCS = {t["name"]: getattr(tools, t["name"]) for t in TOOLS_SPEC}
 
 

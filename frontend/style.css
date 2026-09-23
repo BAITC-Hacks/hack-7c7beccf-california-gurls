@@ -98,3 +98,8 @@ aside.right { border-left: 1px solid var(--line); padding: 16px; }
 .chat-form input { flex: 1; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
 .res { background: var(--bg); border-radius: 8px; padding: 8px 10px; font-size: 12px; }
 .res b { font-variant-numeric: tabular-nums; }
+
+.tabs button { padding: 10px 4px; font-size: 12.5px; }
+.note { color: var(--muted); font-size: 12px; }
+.req { font-size: 11px; font-weight: 600; color: var(--warn); }
+.cyc { font-family: var(--mono); font-size: 11px; background: var(--bg); border-radius: 6px; padding: 5px 7px; margin-bottom: 4px; word-break: break-all; }

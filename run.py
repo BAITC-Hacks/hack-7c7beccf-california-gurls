@@ -45,13 +45,14 @@ def main():
     G = features.build_graph(nodes, edges)
     f = features.node_features(nodes, edges, tx, G, cfg)
     step("метрики посчитаны")
-    f = roles.assign_roles(f, cfg)
+    f = roles.assign_roles(f, cfg, edges)
     step("роли: " + ", ".join(f"{k}={v}" for k, v in f.role.value_counts().items()))
     f["cluster_id"] = clusters.cluster(G, cfg).reindex(f.index)
     step(f"кластеров: {f.cluster_id.nunique()}")
     f = priority.score(f, cfg)
     ct = clusters.cluster_table(f, edges)
     top = priority.top_nodes(f, cfg["top_n"])
+    nxt = priority.next_requests(f, edges, cfg.get("next_requests_n", 40))
     f.index.name = "gid"
     fr = f.reset_index()
 
@@ -62,6 +63,7 @@ def main():
     top[["rank", "gid", "role", "priority_score", "why"]].to_csv(out / "top_nodes.csv", index=False)
     # --- расширенные метрики (для интерфейса и разбора) ---
     fr.to_csv(out / "nodes_metrics.csv", index=False)
+    nxt.to_csv(out / "next_requests.csv", index=False)
     step(f"CSV записаны в {out}/")
 
     if a.db:
@@ -75,6 +77,7 @@ def main():
             "transactions": (tx.assign(date=tx.date.dt.date.astype(str)), None),
             "clusters": (ct, "cluster_id"),
             "top_nodes": (top, "rank"),
+            "next_requests": (nxt, None),
         })
         step("загружено в PostgreSQL")
     step("готово")

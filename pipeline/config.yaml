@@ -6,9 +6,12 @@ truncation_depth: 4          # колено, на котором обход об
 fast_days: 2                 # «сквозной транзит»: деньги ушли дальше за N дней
 
 roles:
-  coordinator:               # собирает И раздаёт: одновременно признаки консолидации и распределения
+  coordinator:               # (а) собирает И раздаёт: одновременно признаки консолидации и распределения
     min_in_deg: 5
     min_out_deg: 10
+    # (б) сборщик второго уровня: консолидатор, которому платят другие хабы (coordinator/consolidator/distributor)
+    min_hub_payers: 6
+    min_seed_reach: 5
   distributor:               # веерная рассылка
     min_out_deg: 10
   consolidator:              # сбор с нескольких плательщиков
@@ -44,3 +47,5 @@ clustering:
   seed: 42
 
 top_n: 30
+max_cycle_len: 4             # поиск возвратных потоков A→B→…→A длиной до N
+next_requests_n: 40          # сколько рекомендаций «что запросить дальше»

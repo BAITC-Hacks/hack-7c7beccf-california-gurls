@@ -66,6 +66,16 @@ def path(src: str, dst: str):
     return tools.trace_path(src, dst)
 
 
+@app.get("/api/next_requests")
+def next_requests(n: int = 40):
+    return tools.next_requests(n)
+
+
+@app.get("/api/cycles/{gid}")
+def cycles(gid: str):
+    return tools.find_cycles(gid)
+
+
 @app.get("/api/resilience")
 def resilience(top_n: int = 10):
     return tools.simulate_removal(top_n=top_n)

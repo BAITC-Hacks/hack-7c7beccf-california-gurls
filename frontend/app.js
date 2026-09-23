@@ -148,7 +148,9 @@ async function renderCard(gid) {
     <h2>${gid}</h2>
     <div class="tags">${badge(n.role)} ${n.is_seed ? '<span class="badge seed">seed</span>' : ""}
       <span class="badge" style="background:${clusterColor(n.cluster_id)}">кластер ${n.cluster_id}</span>
-      <span class="badge" style="background:#555">колено ${n.depth}</span></div>
+      <span class="badge" style="background:#555">колено ${n.depth}</span>
+      ${n.second_level ? '<span class="badge" style="background:#7a0f1f">сборщик 2-го уровня</span>' : ""}
+      ${n.cycles ? `<span class="badge" style="background:#b54708">циклов: ${n.cycles}</span>` : ""}</div>
     <div class="evidence">${esc(n.evidence)}</div>
     ${caveats.map(c => `<div class="caveat">⚠ ${c}</div>`).join("")}
     <div class="metrics">
@@ -160,6 +162,8 @@ async function renderCard(gid) {
       <div><small>Ушло дальше за ≤2 дня</small><b>${Math.round(n.fast_share * 100)}%</b></div>
       <div><small>Seed выше по цепочке</small><b>${n.seed_reach}</b></div>
       <div><small>Макс. плательщиков в день</small><b>${n.max_payers_same_day}</b></div>
+      <div><small>Платят узлы-хабы</small><b>${n.hub_payers}</b></div>
+      <div><small>Возвратные цепочки / встречные</small><b>${n.cycles} / ${n.reciprocal}</b></div>
     </div>
     <div style="display:flex;gap:6px">
       <button class="btn" id="btn-ego">Окрестность</button>
@@ -167,11 +171,19 @@ async function renderCard(gid) {
     </div>
     <div id="ai-card"></div>
     <h3>Активность по дням (июль) — вход / выход</h3><div class="bars">${bars}</div>
+    <div id="cycles"></div>
     <h3>Входящие (${n.incoming.length})</h3><div class="flows">${flows(n.incoming, "←") || "<small>нет в выгрузке</small>"}</div>
     <h3>Исходящие (${n.outgoing.length})</h3><div class="flows">${flows(n.outgoing, "→") || "<small>нет в выгрузке</small>"}</div>
   </div>`;
   $("#card").querySelectorAll(".flow").forEach(el => el.onclick = () => select(el.dataset.gid));
   $("#btn-ego").onclick = () => { state.mode = "ego"; drawEgo(gid); };
+  if (n.cycles) {
+    const c = await api("cycles/" + gid);
+    $("#cycles").innerHTML = `<h3>Возвратные потоки (${c.n_cycles})</h3>` + c.cycles.slice(0, 5).map(x =>
+      `<div class="cyc">${x.chain.map(g => g === gid ? "<b>●</b>" : `<a data-gid="${g}">${short(g)}</a>`).join(" → ")}
+       <br><span style="color:var(--muted)">${x.sums_kzt.map(money).join(" → ")}</span></div>`).join("");
+    bindLinks($("#cycles"));
+  }
   $("#btn-ai").onclick = async () => {
     const b = $("#btn-ai"); b.disabled = true; $("#ai-card").innerHTML = '<div class="ai">Готовлю справку…</div>';
     try { const r = await api(`node/${gid}/card`, { method: "POST" }); $("#ai-card").innerHTML = `<div class="ai">${linkify(r.card)}</div>`; }
@@ -190,6 +202,16 @@ async function renderTop() {
       <span class="score">${t.priority_score.toFixed(2)}</span></div>
       <div class="why">${esc(t.why)}</div></li>`).join("");
   $("#top-list").querySelectorAll(".item").forEach(el => el.onclick = () => select(el.dataset.gid));
+}
+
+async function renderGaps() {
+  const g = await api("next_requests?n=40");
+  $("#gaps-list").innerHTML = g.map(r => `
+    <div class="item" data-gid="${r.gid}"><div class="row"><span class="req">${esc(r.request)}</span>
+      <span class="score">${r.score.toFixed(2)}</span></div>
+      <div class="row"><span class="gid">${short(r.gid)}</span><span style="color:var(--muted)">кластер ${r.cluster_id}</span></div>
+      <div class="why">${esc(r.reason)}</div></div>`).join("");
+  $("#gaps-list").querySelectorAll(".item").forEach(el => el.onclick = () => select(el.dataset.gid));
 }
 
 async function renderClusters() {
@@ -289,4 +311,4 @@ async function renderStats() {
     <span><b>${s.edges}</b> связей</span><span><b>${money(s.turnover)}</b> оборот</span><span><b>${s.clusters}</b> кластеров</span>`;
 }
 
-renderStats(); renderTop(); renderClusters(); renderLegend(); initGraph();
+renderStats(); renderTop(); renderClusters(); renderGaps(); renderLegend(); initGraph();
