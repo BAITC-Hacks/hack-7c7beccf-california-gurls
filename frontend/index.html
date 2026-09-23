@@ -3,21 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Граф денег — AML</title>
+<title>Tamyr — разведка денежных сетей</title>
+<link rel="icon" href="logo.svg">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <div class="brand"><span class="logo">◈</span> Граф денег <small>восстановление структуры сети</small></div>
-  <div id="stats" class="stats"></div>
+<header class="topbar">
+  <a class="brand" href="/">
+    <img src="logo.svg" alt="" width="28" height="28">
+    <span class="word">TAMYR</span>
+    <span class="sub">AML · разведка денежных сетей</span>
+  </a>
   <div class="search">
-    <input id="search" placeholder="Поиск по gid…" autocomplete="off">
+    <svg viewBox="0 0 20 20" width="15" height="15"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <input id="search" placeholder="Поиск клиента по gid" autocomplete="off">
+    <kbd>/</kbd>
     <div id="search-results" class="dropdown hidden"></div>
+  </div>
+  <div class="top-right">
+    <span id="storage" class="chip"></span>
+    <span class="chip period">Июль 2026 · ≥5 000 ₸</span>
   </div>
 </header>
 
+<div id="stats" class="ticker"></div>
+
 <main>
-  <aside class="left">
+  <aside class="left panel">
     <nav class="tabs">
       <button data-tab="top" class="active">Приоритеты</button>
       <button data-tab="clusters">Кластеры</button>
@@ -25,69 +37,82 @@
       <button data-tab="chat">Ассистент</button>
     </nav>
     <section id="tab-top" class="tab active">
-      <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <label class="chk"><input type="checkbox" id="hide-seed"> скрыть seed</label>
-        <label class="chk"><input type="checkbox" id="hide-marked"> скрыть проверенные</label>
+      <div class="filters">
+        <label class="chk"><input type="checkbox" id="hide-seed"> без seed</label>
+        <label class="chk"><input type="checkbox" id="hide-marked"> без проверенных</label>
+        <span id="marks-summary" class="note"></span>
       </div>
-      <div id="marks-summary" class="note"></div>
+      <div class="list-head"><span>#</span><span>Клиент · роль</span><span>Приоритет</span></div>
       <ol id="top-list" class="list"></ol>
     </section>
     <section id="tab-clusters" class="tab">
-      <button id="btn-resilience" class="btn wide">Устойчивость: убрать топ-10</button>
+      <button id="btn-resilience" class="btn wide">Устойчивость сети: заблокировать топ-10</button>
       <div id="resilience"></div>
       <div id="cluster-list" class="list"></div>
     </section>
     <section id="tab-gaps" class="tab">
-      <div class="note">Какие данные запросить следующими, чтобы закрыть белые пятна выгрузки</div>
+      <div class="note">Какие выгрузки запросить следующими, чтобы закрыть белые пятна</div>
       <div id="gaps-list" class="list"></div>
     </section>
     <section id="tab-chat" class="tab">
       <div id="chat-log" class="chat-log">
-        <div class="msg bot">Спросите про сеть: «кто собирает деньги с seed …?», «опиши кластер 2», «что будет, если заблокировать топ-5?»</div>
+        <div class="msg bot">Задайте вопрос по графу. Например: «кто собирает деньги с seed …», «опиши кластер 2», «что будет, если заблокировать топ-5». Ответы строятся только на функциях графа.</div>
       </div>
       <form id="chat-form" class="chat-form">
-        <input id="chat-input" placeholder="Вопрос по графу…" autocomplete="off">
-        <button class="btn">→</button>
+        <input id="chat-input" placeholder="Вопрос по сети…" autocomplete="off">
+        <button class="btn">Отправить</button>
       </form>
     </section>
   </aside>
 
-  <section class="center">
+  <section class="center panel">
     <div class="toolbar">
       <div class="seg" id="mode">
-        <button data-mode="full" class="active">Вся сеть</button>
-        <button data-mode="ego">Окрестность узла</button>
-        <button data-mode="flows">Потоки денег</button>
-      </div>
-      <button class="btn ghost" id="btn-play" title="Проиграть июль по дням">▶ Июль</button>
-      <div class="seg" id="color-by">
-        <button data-c="role" class="active">Цвет: роль</button>
-        <button data-c="cluster">Цвет: кластер</button>
+        <button data-mode="full" class="active">Сеть</button>
+        <button data-mode="ego">Окрестность</button>
+        <button data-mode="flows">Потоки</button>
       </div>
       <div class="seg" id="hops">
         <button data-h="1" class="active">1 шаг</button>
         <button data-h="2">2 шага</button>
       </div>
-      <span id="graph-hint" class="hint"></span>
+      <div class="seg" id="color-by">
+        <button data-c="role" class="active">Роли</button>
+        <button data-c="cluster">Кластеры</button>
+      </div>
+      <span class="sep"></span>
+      <button class="btn ghost" id="btn-play">Июль по дням</button>
+      <button class="btn accent" id="btn-lab">Лаборатория порогов</button>
     </div>
+    <div id="graph-hint" class="hint-bar"></div>
     <div id="cy"></div>
     <div id="sankey" class="sankey hidden"></div>
+    <div id="lab" class="lab hidden">
+      <div class="lab-head"><b>Лаборатория порогов</b><span class="note">правила те же, что в пайплайне · пересчёт ≈50 мс</span>
+        <button class="btn ghost sm" id="lab-reset">Сбросить</button><button class="btn ghost sm" id="lab-close">Закрыть</button></div>
+      <div id="lab-knobs" class="lab-knobs"></div>
+      <div id="lab-result" class="lab-result"></div>
+    </div>
     <div id="player" class="player hidden">
-      <button class="btn" id="pl-toggle">▶</button>
+      <button class="btn accent" id="pl-toggle">Играть</button>
       <input type="range" id="pl-day" min="1" max="31" value="1">
       <b id="pl-label">1 июля</b>
       <label class="chk"><input type="checkbox" id="pl-cum"> накопительно</label>
-      <span id="pl-stats" class="hint"></span>
-      <button class="btn ghost" id="pl-close">✕</button>
+      <span id="pl-stats" class="note"></span>
+      <button class="btn ghost sm" id="pl-close">Закрыть</button>
     </div>
     <div id="legend" class="legend"></div>
   </section>
 
-  <aside class="right" id="card">
-    <div class="empty">Выберите узел на схеме, в топ-листе или через поиск</div>
+  <aside class="right panel" id="card">
+    <div class="empty">
+      <img src="logo.svg" width="44" height="44" alt="">
+      <p>Выберите клиента в списке приоритетов, на схеме или через поиск</p>
+    </div>
   </aside>
 </main>
 
+<div id="tip" class="tip hidden"></div>
 <script src="vendor/cytoscape.min.js"></script>
 <script src="app.js"></script>
 </body>

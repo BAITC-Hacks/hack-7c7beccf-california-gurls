@@ -1,20 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" font-family="-apple-system, 'Segoe UI', Roboto, Arial, sans-serif">
   <defs>
     <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-      <path d="M0,0 L10,5 L0,10 z" fill="#8a91a0"/>
+      <path d="M0,0 L10,5 L0,10 z" fill="#5E6673"/>
     </marker>
     <style>
-      .t { font-size: 26px; font-weight: 700; fill: #1d2330; }
-      .h { font-size: 19px; font-weight: 700; fill: #1d2330; }
-      .s { font-size: 14.5px; fill: #4a5263; }
-      .m { font-size: 13.5px; fill: #4a5263; font-family: ui-monospace, Menlo, Consolas, monospace; }
-      .k { font-size: 13px; fill: #6b7385; letter-spacing: .08em; font-weight: 600; }
-      .box { fill: #fff; stroke: #d5dae3; stroke-width: 1.5; rx: 14; }
-      .ln { stroke: #8a91a0; stroke-width: 2.2; fill: none; marker-end: url(#a); }
+      .t { font-size: 26px; font-weight: 700; fill: #EAECEF; }
+      .h { font-size: 19px; font-weight: 700; fill: #EAECEF; }
+      .s { font-size: 14.5px; fill: #B7BDC6; }
+      .m { font-size: 13.5px; fill: #B7BDC6; font-family: ui-monospace, Menlo, Consolas, monospace; }
+      .k { font-size: 13px; fill: #848E9C; letter-spacing: .08em; font-weight: 600; }
+      .box { fill: #161A1F; stroke: #2B3139; stroke-width: 1.5; rx: 14; }
+      .ln { stroke: #5E6673; stroke-width: 2.2; fill: none; marker-end: url(#a); }
     </style>
   </defs>
-  <rect width="1600" height="900" fill="#f5f6f8"/>
-  <text x="60" y="68" class="t">Граф денег — схема решения</text>
+  <rect width="1600" height="900" fill="#0B0E11"/>
+  <text x="60" y="68" class="t">TAMYR · схема решения</text>
   <text x="60" y="98" class="s">Детерминированный пайплайн правил → объяснимые роли и приоритеты → интерфейс аналитика. LLM только объясняет, но не классифицирует.</text>
 
   <!-- column labels -->
@@ -31,8 +31,8 @@
   <text x="84" y="288" class="m">transactions     4 840</text>
   <text x="84" y="326" class="s">81 seed · 4 колена · июль 2026</text>
   <text x="84" y="350" class="s">порог 5 000 ₸, только исходящие</text>
-  <rect x="80" y="372" width="222" height="76" rx="8" fill="#fff4e5"/>
-  <text x="94" y="398" class="s" fill="#b54708">Ограничения учтены:</text>
+  <rect x="80" y="372" width="222" height="76" rx="8" fill="#2A2311"/>
+  <text x="94" y="398" class="s" fill="#F0B429">Ограничения учтены:</text>
   <text x="94" y="420" class="s">обрыв 4-го колена, неполный</text>
   <text x="94" y="440" class="s">вход у seed, 16 компонент</text>
 
@@ -48,7 +48,7 @@
   <text x="394" y="396" class="s">• возвратные циклы длиной ≤4</text>
   <text x="394" y="422" class="s">• PageRank по суммам, betweenness</text>
   <text x="394" y="448" class="s">• дробление, маршруты, аномалии</text>
-  <rect x="394" y="478" width="252" height="226" rx="8" fill="#f0f3fa"/>
+  <rect x="394" y="478" width="252" height="226" rx="8" fill="#1E2329"/>
   <text x="410" y="506" class="h" font-size="16">config.yaml</text>
   <text x="410" y="532" class="s">все пороги и веса в одном</text>
   <text x="410" y="552" class="s">файле, без правки кода</text>
@@ -62,19 +62,19 @@
   <rect x="720" y="170" width="350" height="250" class="box"/>
   <text x="744" y="206" class="h">roles.py — правила по порядку</text>
   <g font-size="14.5">
-    <circle cx="752" cy="236" r="7" fill="#d7263d"/><text x="768" y="241" class="s">coordinator · сбор + раздача / 2-й уровень</text>
-    <circle cx="752" cy="262" r="7" fill="#8e44ad"/><text x="768" y="267" class="s">distributor · веер ≥10 получателей</text>
-    <circle cx="752" cy="288" r="7" fill="#f46036"/><text x="768" y="293" class="s">consolidator · ≥5 плательщиков</text>
-    <circle cx="752" cy="314" r="7" fill="#2e86de"/><text x="768" y="319" class="s">transit · пропуск 80–120%</text>
-    <circle cx="752" cy="340" r="7" fill="#1b998b"/><text x="768" y="345" class="s">terminal · деньги остаются</text>
-    <circle cx="752" cy="366" r="7" fill="#a0a6b1"/><text x="768" y="371" class="s">boundary · за границей выгрузки</text>
-    <circle cx="752" cy="392" r="7" fill="#cfd3da"/><text x="768" y="397" class="s">peripheral · признаков нет</text>
+    <circle cx="752" cy="236" r="7" fill="#e66767"/><text x="768" y="241" class="s">coordinator · сбор + раздача / 2-й уровень</text>
+    <circle cx="752" cy="262" r="7" fill="#9085e9"/><text x="768" y="267" class="s">distributor · веер ≥10 получателей</text>
+    <circle cx="752" cy="288" r="7" fill="#d95926"/><text x="768" y="293" class="s">consolidator · ≥5 плательщиков</text>
+    <circle cx="752" cy="314" r="7" fill="#3987e5"/><text x="768" y="319" class="s">transit · пропуск 80–120%</text>
+    <circle cx="752" cy="340" r="7" fill="#199e70"/><text x="768" y="345" class="s">terminal · деньги остаются</text>
+    <circle cx="752" cy="366" r="7" fill="#6B7280"/><text x="768" y="371" class="s">boundary · за границей выгрузки</text>
+    <circle cx="752" cy="392" r="7" fill="#3F4652"/><text x="768" y="397" class="s">peripheral · признаков нет</text>
   </g>
   <rect x="720" y="440" width="350" height="120" class="box"/>
   <text x="744" y="476" class="h">clusters.py</text>
   <text x="744" y="504" class="s">Louvain, вес = log(1 + сумма)</text>
   <text x="744" y="528" class="s">гипотеза кластера по составу ролей</text>
-  <text x="744" y="548" class="s" fill="#1b998b">устойчивость ролей: 60 прогонов ±20%</text>
+  <text x="744" y="548" class="s" fill="#2EBD85">устойчивость ролей: 60 прогонов ±20%</text>
   <rect x="720" y="580" width="350" height="150" class="box"/>
   <text x="744" y="616" class="h">priority.py</text>
   <text x="744" y="644" class="s">0.35 роль + 0.25 оборот</text>
@@ -101,7 +101,7 @@
   <text x="1144" y="552" class="s">• топ-лист · кластеры · пробелы в данных</text>
   <text x="1144" y="576" class="s">• проигрыватель июля · санкей · PDF-справка</text>
 
-  <rect x="1120" y="620" width="420" height="110" class="box" fill="#eef2ff" stroke="#b9c6f5"/>
+  <rect x="1120" y="620" width="420" height="110" class="box" fill="#1E2329" stroke="#F0B429"/>
   <text x="1144" y="656" class="h">AI-ассистент (OpenAI / NVIDIA)</text>
   <text x="1144" y="682" class="s">function calling → 12 функций графа</text>
   <text x="1144" y="706" class="s">ответы только по данным, со ссылками на gid</text>
@@ -117,7 +117,7 @@
   <path d="M1330,600 L1330,616" class="ln"/>
 
   <!-- footer -->
-  <rect x="60" y="770" width="1480" height="80" rx="14" fill="#1d2330"/>
-  <text x="90" y="805" font-size="17" fill="#fff" font-weight="600">Вопрос аналитика: «кого из 2 248 клиентов смотреть первым и почему»</text>
-  <text x="90" y="832" font-size="15" fill="#c9cfdb">Ответ: ранжированный список с ролью, уверенностью и обоснованием для каждого узла. Выводы — гипотезы для проверки, а не утверждение о виновности.</text>
+  <rect x="60" y="770" width="1480" height="80" rx="14" fill="#F0B429"/>
+  <text x="90" y="805" font-size="17" fill="#111" font-weight="700">Вопрос аналитика: «кого из 2 248 клиентов смотреть первым и почему»</text>
+  <text x="90" y="832" font-size="15" fill="#2A2311">Ответ: ранжированный список с ролью, уверенностью и обоснованием для каждого узла. Выводы — гипотезы для проверки, а не утверждение о виновности.</text>
 </svg>

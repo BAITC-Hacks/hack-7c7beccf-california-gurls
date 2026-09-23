@@ -8,9 +8,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import assistant, store, tools
+from . import assistant, store, tools, whatif
 
-app = FastAPI(title="Граф денег — HackAlem AI")
+app = FastAPI(title="Tamyr — HackAlem AI")
 
 
 @app.get("/api/config")
@@ -112,6 +112,20 @@ def flows():
 def timeline():
     """Все транзакции (≈5 тыс.) для проигрывателя июля."""
     return store.q("SELECT src, dst, date, sum_kzt FROM transactions ORDER BY date")
+
+
+@app.get("/api/whatif")
+def whatif_knobs():
+    return whatif.knobs()
+
+
+class WhatIf(BaseModel):
+    overrides: dict[str, float] = {}
+
+
+@app.post("/api/whatif")
+def whatif_run(w: WhatIf):
+    return whatif.run(w.overrides)
 
 
 class Mark(BaseModel):

@@ -1,26 +1,28 @@
-// Граф денег — фронтенд. gid везде СТРОКИ (значения ~1e17 не помещаются в Number).
+// Tamyr — фронтенд. gid везде СТРОКИ (значения ~1e17 не помещаются в Number).
+// Цвета ролей проверены валидатором палитры на тёмном фоне (яркость, различимость при дальтонизме, контраст).
 const ROLES = {
-  coordinator:  { ru: "координатор",        color: "#d7263d" },
-  consolidator: { ru: "консолидатор",       color: "#f46036" },
-  distributor:  { ru: "распределитель",     color: "#8e44ad" },
-  transit:      { ru: "транзит",            color: "#2e86de" },
-  terminal:     { ru: "конечный получатель", color: "#1b998b" },
-  boundary:     { ru: "граница выгрузки",   color: "#a0a6b1" },
-  peripheral:   { ru: "периферия",          color: "#cfd3da" },
+  coordinator:  { ru: "координатор",         color: "#e66767" },
+  distributor:  { ru: "распределитель",      color: "#9085e9" },
+  consolidator: { ru: "консолидатор",        color: "#d95926" },
+  transit:      { ru: "транзит",             color: "#3987e5" },
+  terminal:     { ru: "конечный получатель", color: "#199e70" },
+  boundary:     { ru: "граница выгрузки",    color: "#6B7280" },
+  peripheral:   { ru: "периферия",           color: "#3F4652" },
 };
-const PALETTE = ["#2f5bea","#e4572e","#17bebb","#ffc914","#76b041","#9d4edd","#ff70a6","#3a86ff",
-                 "#fb5607","#8338ec","#06d6a0","#ef476f","#118ab2","#b5838d","#6d597a","#e09f3e"];
-const clusterColor = c => c === 0 ? "#888" : PALETTE[(c - 1) % PALETTE.length];
+// 8 крупнейших кластеров — фиксированные цвета, остальные — нейтральный «прочие» (цвета не зацикливаем)
+const PALETTE = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"];
+const clusterColor = c => c >= 1 && c <= 8 ? PALETTE[c - 1] : "#4A5260";
 
 const $ = s => document.querySelector(s);
 const api = async (p, opt) => { const r = await fetch("/api/" + p, opt); if (!r.ok) throw new Error((await r.json()).detail || r.status); return r.json(); };
 const money = x => x >= 1e6 ? (x / 1e6).toFixed(1).replace(".", ",") + " млн ₸" : x >= 1e3 ? Math.round(x / 1e3) + " тыс ₸" : Math.round(x) + " ₸";
 const short = g => "…" + g.slice(-9, -3);
-const badge = (role) => `<span class="badge" style="background:${ROLES[role].color}">${ROLES[role].ru}</span>`;
+const pill = (text, c) => `<span class="badge" style="color:${c};background:${c}1f;box-shadow:inset 0 0 0 1px ${c}55">${text}</span>`;
+const badge = role => pill(ROLES[role].ru, role === "peripheral" ? "#9AA3AF" : ROLES[role].color);
 const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 
 let cy, FULL, CFG = null, MARKS = new Map(), state = { mode: "full", color: "role", hops: 1, selected: null };
-const MARK = { confirmed: { ic: "✔", ru: "подтверждено" }, review: { ic: "⏳", ru: "на проверке" }, rejected: { ic: "✕", ru: "отклонено" } };
+const MARK = { confirmed: { ic: "OK", ru: "подтверждено" }, review: { ic: "ПРВ", ru: "на проверке" }, rejected: { ic: "ОТК", ru: "отклонено" } };
 const ROLE_RU_ALT = r => ROLES[r] ? ROLES[r].ru : r;
 
 // ---------- граф ----------
@@ -34,20 +36,20 @@ function edgeData(e) {
 }
 function style() {
   const col = state.color === "role" ? ele => ROLES[ele.data("role")].color : ele => clusterColor(ele.data("cluster"));
-  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
   return [
     { selector: "node", style: { "background-color": col, width: "data(size)", height: "data(size)", "border-width": 0 } },
-    { selector: "node[?seed]", style: { "border-width": 2, "border-color": dark ? "#fff" : "#111" } },
-    { selector: "node[role='boundary']", style: { "border-width": 1, "border-style": "dashed", "border-color": "#777" } },
-    { selector: "edge", style: { width: "data(w)", "line-color": dark ? "#3a4254" : "#c9ced8", "curve-style": "haystack", opacity: 0.55 } },
-    { selector: ".ego edge, edge.ego", style: { "curve-style": "bezier", "target-arrow-shape": "triangle", "target-arrow-color": dark ? "#8b93a7" : "#8a91a0",
-        "line-color": dark ? "#5a6378" : "#aab1bf", opacity: 0.9, "arrow-scale": 0.9 } },
-    { selector: "node.labeled, .ego node", style: { label: "data(label)", "font-size": 9, color: dark ? "#cfd4de" : "#333",
-        "text-valign": "bottom", "text-margin-y": 3, "font-family": "monospace" } },
-    { selector: ".faded", style: { opacity: 0.08 } },
-    { selector: "edge.hl", style: { opacity: 1, "line-color": "#2f5bea", "target-arrow-color": "#2f5bea", "curve-style": "bezier", "target-arrow-shape": "triangle", "z-index": 9 } },
-    { selector: "node.hl", style: { opacity: 1, label: "data(label)", "font-size": 9, color: dark ? "#fff" : "#111", "z-index": 9 } },
-    { selector: "node:selected, node.focus", style: { "border-width": 4, "border-color": "#2f5bea", "z-index": 10 } },
+    { selector: "node[?seed]", style: { "border-width": 2, "border-color": "#EAECEF" } },
+    { selector: "node[role='boundary']", style: { "border-width": 1, "border-style": "dashed", "border-color": "#848E9C" } },
+    { selector: "edge", style: { width: "data(w)", "line-color": "#2B3139", "curve-style": "haystack", opacity: 0.7 } },
+    { selector: ".ego edge, edge.ego", style: { "curve-style": "bezier", "target-arrow-shape": "triangle", "target-arrow-color": "#5E6673",
+        "line-color": "#434A55", opacity: 0.95, "arrow-scale": 0.9 } },
+    { selector: "node.labeled, .ego node", style: { label: "data(label)", "font-size": 9, color: "#B7BDC6",
+        "text-valign": "bottom", "text-margin-y": 3, "font-family": "JetBrains Mono, SF Mono, Menlo, monospace" } },
+    { selector: ".faded", style: { opacity: 0.07 } },
+    { selector: "edge.hl", style: { opacity: 1, "line-color": "#F0B429", "target-arrow-color": "#F0B429", "curve-style": "bezier", "target-arrow-shape": "triangle", "z-index": 9 } },
+    { selector: "node.hl", style: { opacity: 1, label: "data(label)", "font-size": 9, color: "#EAECEF", "z-index": 9 } },
+    { selector: "node:selected, node.focus", style: { "border-width": 3, "border-color": "#F0B429", "z-index": 10 } },
+    { selector: "node.changed", style: { "border-width": 3, "border-color": "#F0B429", "border-style": "solid" } },
   ];
 }
 
@@ -58,6 +60,14 @@ async function initGraph() {
   drawFull();
   cy.on("tap", "node", e => select(e.target.id()));
   cy.on("tap", e => { if (e.target === cy) clearHL(); });
+  const tip = $("#tip");
+  cy.on("mouseover", "node", e => {
+    const d = e.target.data();
+    tip.innerHTML = `<span class="num">${d.id}</span><br>${ROLES[d.role].ru}${d.seed ? " · seed" : ""} · приоритет <b class="num">${d.prio.toFixed(2)}</b>`;
+    tip.classList.remove("hidden");
+  });
+  cy.on("mousemove", e => { const o = e.originalEvent; if (o) { tip.style.left = o.clientX + 14 + "px"; tip.style.top = o.clientY + 12 + "px"; } });
+  cy.on("mouseout", "node", () => tip.classList.add("hidden"));
 }
 
 function drawFull() {
@@ -69,6 +79,7 @@ function drawFull() {
   cy.layout({ name: "preset", fit: true, padding: 20 }).run();
   $("#graph-hint").textContent = `${FULL.nodes.length} узлов · ${FULL.edges.length} связей · размер = приоритет, рамка = seed`;
   if (state.selected) highlight(state.selected, false);
+  if (LAB_ROLES) paintLab();
 }
 
 async function drawEgo(gid) {
@@ -179,7 +190,7 @@ async function renderCard(gid) {
   const incomplete = n.is_seed || (n.in_sum > 0 && n.out_sum > n.in_sum * 1.2);
   const pr = n.pass_ratio == null ? "—" : incomplete ? "н/д · вход неполон" : Math.round(n.pass_ratio * 100) + "%";
   const flows = (list, dir) => list.slice(0, 12).map(f => `
-    <div class="flow" data-gid="${f.gid}"><span>${dir}</span>${badge(f.role)}<span class="gid">${short(f.gid)}</span>
+    <div class="flow" data-gid="${f.gid}"><span class="dir ${dir === "←" ? "in" : "out"}">${dir}</span>${badge(f.role)}<span class="gid">${short(f.gid)}</span>
     ${f.is_seed ? '<span class="badge seed">seed</span>' : ""}<span class="amt">${money(f.sum_kzt)}${f.n_tx > 1 ? " ×" + f.n_tx : ""}</span></div>`).join("")
     + (list.length > 12 ? `<small style="color:var(--muted)">… ещё ${list.length - 12}</small>` : "");
   // дневная активность: вход (зелёный) / выход (красный)
@@ -191,18 +202,17 @@ async function renderCard(gid) {
   $("#card").innerHTML = `<div class="card">
     <h2>${gid}</h2>
     <div class="tags">${badge(n.role)} ${n.is_seed ? '<span class="badge seed">seed</span>' : ""}
-      <span class="badge" style="background:${clusterColor(n.cluster_id)}">кластер ${n.cluster_id}</span>
-      <span class="badge" style="background:#555">колено ${n.depth}</span>
-      ${n.second_level ? '<span class="badge" style="background:#7a0f1f">сборщик 2-го уровня</span>' : ""}
-      ${n.cycles ? `<span class="badge" style="background:#b54708">циклов: ${n.cycles}</span>` : ""}
-      ${n.split_out + n.split_in ? `<span class="badge" style="background:#6d28d9">дробление: ${n.split_out + n.split_in}</span>` : ""}
-      ${n.anomaly ? '<span class="badge" style="background:#9a3412">аномалия для колена</span>' : ""}
-      ${n.routes_mid ? `<span class="badge" style="background:#0e7490">маршрутов A→B→C: ${n.routes_mid}</span>` : ""}</div>
+      ${pill("кластер " + n.cluster_id, "#9AA3AF")} ${pill("колено " + n.depth, "#9AA3AF")}
+      ${n.second_level ? pill("сборщик 2-го уровня", "#F0B429") : ""}
+      ${n.cycles ? pill("циклов " + n.cycles, "#E8A13A") : ""}
+      ${n.split_out + n.split_in ? pill("дробление " + (n.split_out + n.split_in), "#E8A13A") : ""}
+      ${n.anomaly ? pill("аномалия для колена", "#FF9F6B") : ""}
+      ${n.routes_mid ? pill("маршрутов A→B→C " + n.routes_mid, "#9AA3AF") : ""}</div>
     <div class="evidence">${esc(n.evidence)}</div>
-    ${caveats.map(c => `<div class="caveat">⚠ ${c}</div>`).join("")}
-    <div class="stab">Устойчивость роли: <b style="color:${n.role_stability >= .9 ? "#1b998b" : n.role_stability >= .7 ? "var(--warn)" : "#d7263d"}">${Math.round(n.role_stability * 100)}%</b>
+    ${caveats.map(c => `<div class="caveat">! ${c}</div>`).join("")}
+    <div class="stab">Устойчивость роли: <b style="color:${n.role_stability >= .9 ? "var(--in)" : n.role_stability >= .7 ? "var(--warn)" : "var(--out)"}">${Math.round(n.role_stability * 100)}%</b>
       вариантов порогов ±20%${n.alt_role ? ` · иначе — ${ROLE_RU_ALT(n.alt_role)}` : ""}</div>
-    ${n.anomaly ? `<div class="caveat" style="color:#9a3412">◆ ${esc(n.anomaly_text)}</div>` : ""}
+    ${n.anomaly ? `<div class="caveat anom">Аномалия: ${esc(n.anomaly_text)}</div>` : ""}
     <h3 style="margin-top:4px">Из чего сложился приоритет ${n.priority_score.toFixed(2)}</h3>
     <div class="decomp" id="decomp"></div>
     <div class="metrics">
@@ -219,10 +229,11 @@ async function renderCard(gid) {
       <div><small>Эпизоды дробления (отпр. / получ.)</small><b>${n.split_out} / ${n.split_in}</b></div>
       <div><small>Доля переводов 5–10 тыс ₸</small><b>${Math.round(n.near_threshold_share * 100)}%</b></div>
     </div>
-    <div style="display:flex;gap:6px">
+    <div class="actions">
       <button class="btn" id="btn-ego">Окрестность</button>
       <button class="btn ghost" id="btn-ai">AI-справка</button>
-      <button class="btn ghost" id="btn-pdf">PDF</button>
+      <button class="btn ghost" id="btn-pdf">Справка PDF</button>
+      <button class="btn accent" id="btn-dossier">Досье</button>
     </div>
     <div class="markbox" id="markbox"></div>
     <div id="ai-card"></div>
@@ -236,6 +247,7 @@ async function renderCard(gid) {
   $("#card").querySelectorAll(".flow").forEach(el => el.onclick = () => select(el.dataset.gid));
   $("#btn-ego").onclick = () => { state.mode = "ego"; drawEgo(gid); };
   $("#btn-pdf").onclick = () => window.open("report.html?gid=" + gid, "_blank");
+  $("#btn-dossier").onclick = () => window.open("dossier.html?gid=" + gid, "_blank");
   renderDecomp(n);
   renderMarkBox(gid, n.mark);
   {  // маршруты: узел может быть в начале, середине или конце цепочки
@@ -264,7 +276,7 @@ async function renderCard(gid) {
   $("#btn-ai").onclick = async () => {
     const b = $("#btn-ai"); b.disabled = true; $("#ai-card").innerHTML = '<div class="ai">Готовлю справку…</div>';
     try { const r = await api(`node/${gid}/card`, { method: "POST" }); $("#ai-card").innerHTML = `<div class="ai">${linkify(r.card)}</div>`; }
-    catch (e) { $("#ai-card").innerHTML = `<div class="ai">⚠ ${esc(e.message)}</div>`; }
+    catch (e) { $("#ai-card").innerHTML = `<div class="ai">Ошибка: ${esc(e.message)}</div>`; }
     b.disabled = false; bindLinks($("#ai-card"));
   };
 }
@@ -291,8 +303,8 @@ function renderDecomp(n) {
 // отметки аналитика: подтвердить / на проверке / отклонить + комментарий
 function renderMarkBox(gid, mark) {
   const st = mark ? mark.status : null;
-  $("#markbox").innerHTML = `<div class="row"><b style="font-size:12px">Решение аналитика:</b>
-      ${Object.entries(MARK).map(([k, v]) => `<button data-s="${k}" class="${k} ${st === k ? "on" : ""}">${v.ic} ${v.ru}</button>`).join("")}
+  $("#markbox").innerHTML = `<div class="row"><span class="lbl">Решение аналитика</span>
+      ${Object.entries(MARK).map(([k, v]) => `<button data-s="${k}" class="${k} ${st === k ? "on" : ""}">${v.ru}</button>`).join("")}
       ${st ? '<button data-s="clear">снять</button>' : ""}</div>
     <input id="mark-comment" placeholder="комментарий (основание решения)" value="${esc(mark?.comment || "")}">
     ${mark ? `<small style="color:var(--muted)">обновлено ${mark.updated_at.slice(0, 16)}</small>` : ""}`;
@@ -311,12 +323,12 @@ async function renderTop() {
   const top = await api("top?n=50");
   const hide = $("#hide-seed").checked, hideM = $("#hide-marked").checked;
   const cnt = s => [...MARKS.values()].filter(m => m.status === s).length;
-  $("#marks-summary").textContent = MARKS.size ? `Проверено: ✔ ${cnt("confirmed")} · ⏳ ${cnt("review")} · ✕ ${cnt("rejected")}` : "";
+  $("#marks-summary").textContent = MARKS.size ? `подтв. ${cnt("confirmed")} · на пров. ${cnt("review")} · откл. ${cnt("rejected")}` : "";
   $("#top-list").innerHTML = top.filter(t => !(hide && t.is_seed) && !(hideM && MARKS.has(t.gid))).map(t => `
     <li class="item" data-gid="${t.gid}"><div class="row"><span class="rank">${t.rank}</span>${badge(t.role)}
       <span class="gid">${short(t.gid)}</span>${t.is_seed ? '<span class="badge seed">seed</span>' : ""}
-      ${MARKS.has(t.gid) ? `<span class="mk" title="${MARK[MARKS.get(t.gid).status].ru}">${MARK[MARKS.get(t.gid).status].ic}</span>` : ""}
-      <span class="score">${t.priority_score.toFixed(2)}</span></div>
+      ${MARKS.has(t.gid) ? `<span class="mk ${MARKS.get(t.gid).status}" title="${MARK[MARKS.get(t.gid).status].ru}">${MARK[MARKS.get(t.gid).status].ic}</span>` : ""}
+      <span class="pbar"><i style="width:${t.priority_score * 100}%"></i></span><span class="score">${t.priority_score.toFixed(2)}</span></div>
       <div class="why">${esc(t.why)}</div></li>`).join("");
   $("#top-list").querySelectorAll(".item").forEach(el => el.onclick = () => select(el.dataset.gid));
 }
@@ -335,7 +347,7 @@ async function renderClusters() {
   const cl = await api("clusters");
   $("#cluster-list").innerHTML = cl.map(c => `
     <div class="item" data-c="${c.cluster_id}"><div class="row">
-      <span class="badge" style="background:${clusterColor(c.cluster_id)}">#${c.cluster_id}</span>
+      ${pill("#" + c.cluster_id, c.cluster_id >= 1 && c.cluster_id <= 8 ? clusterColor(c.cluster_id) : "#9AA3AF")}
       <span>${c.n_nodes} узл. · ${c.n_seed} seed</span><span class="score">${money(c.sum_kzt_internal)}</span></div>
       <div class="why">${esc(c.hypothesis)}</div></div>`).join("");
   $("#cluster-list").querySelectorAll(".item").forEach(el => el.onclick = () => focusCluster(+el.dataset.c));
@@ -371,7 +383,7 @@ $("#chat-form").onsubmit = async e => {
     history.push({ role: "assistant", content: r.answer });
     pending.innerHTML = linkify(r.answer) + (r.trace.length ? `<div class="trace">инструменты: ${r.trace.map(t => t.tool).join(" → ")}</div>` : "");
     bindLinks(pending);
-  } catch (err) { pending.textContent = "⚠ " + err.message; history.pop(); }
+  } catch (err) { pending.textContent = "Ошибка: " + err.message; history.pop(); }
   log.scrollTop = log.scrollHeight;
 };
 
@@ -384,7 +396,7 @@ $("#search").oninput = e => {
   st = setTimeout(async () => {
     const res = await api("search?q=" + q);
     const box = $("#search-results");
-    box.innerHTML = res.length ? res.map(r => `<div data-gid="${r.gid}"><span class="gid" style="font-family:var(--mono)">${r.gid}</span>${badge(r.role)}</div>`).join("")
+    box.innerHTML = res.length ? res.map(r => `<div data-gid="${r.gid}"><span class="gid">${r.gid}</span>${badge(r.role)}</div>`).join("")
                                : "<div>ничего не найдено</div>";
     box.classList.remove("hidden");
     box.querySelectorAll("[data-gid]").forEach(el => el.onclick = () => { box.classList.add("hidden"); $("#search").value = el.dataset.gid; select(el.dataset.gid); });
@@ -393,6 +405,7 @@ $("#search").oninput = e => {
 $("#search").onkeydown = e => { if (e.key === "Enter") { const f = $("#search-results [data-gid]"); if (f) f.click(); } };
 
 // ---------- прочее ----------
+document.addEventListener("keydown", e => { if (e.key === "/" && document.activeElement.tagName !== "INPUT") { e.preventDefault(); $("#search").focus(); } });
 function setSeg(sel, val) { document.querySelectorAll(sel + " button").forEach(b => b.classList.toggle("active", Object.values(b.dataset)[0] === val)); }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll(".tabs button, .tab").forEach(x => x.classList.remove("active"));
@@ -425,14 +438,18 @@ $("#btn-resilience").onclick = async () => {
 
 function renderLegend() {
   $("#legend").innerHTML = state.color === "role"
-    ? Object.entries(ROLES).map(([k, v]) => `<span><i style="background:${v.color}"></i>${v.ru}</span>`).join("") + '<span><i style="border:2px solid currentColor"></i>seed</span>'
-    : "<span>Цвет = кластер (Louvain)</span>";
+    ? Object.entries(ROLES).map(([k, v]) => `<span><i style="background:${v.color}"></i>${v.ru}</span>`).join("") + '<span><i style="box-shadow:inset 0 0 0 2px #EAECEF"></i>seed</span>'
+    : PALETTE.map((c, i) => `<span><i style="background:${c}"></i>кластер ${i + 1}</span>`).join("") + '<span><i style="background:#4A5260"></i>прочие</span>';
 }
 
 async function renderStats() {
   const s = await api("stats");
-  $("#stats").innerHTML = `<span><b>${s.nodes}</b> узлов</span><span><b>${s.seeds}</b> seed</span>
-    <span><b>${s.edges}</b> связей</span><span><b>${money(s.turnover)}</b> оборот</span><span><b>${s.clusters}</b> кластеров</span>`;
+  const r = s.roles, t = (l, v, extra = "", cls = "") => `<div class="t"><small>${l}</small><b class="${cls}">${v}</b>${extra}</div>`;
+  $("#stats").innerHTML = t("Оборот сети", money(s.turnover), "", "acc") + t("Клиентов", s.nodes.toLocaleString("ru-RU"), `<i>seed ${s.seeds}</i>`)
+    + t("Переводов (агр.)", s.edges.toLocaleString("ru-RU")) + t("Кластеров", s.clusters)
+    + t("Координаторы", r.coordinator || 0) + t("Распределители", r.distributor || 0) + t("Консолидаторы", r.consolidator || 0)
+    + t("Транзит", r.transit || 0) + t("Конечные", r.terminal || 0) + t("Граница выгрузки", r.boundary || 0);
+  try { const st = await api("storage"); $("#storage").innerHTML = `<span class="dot"></span>${st.backend === "postgres" ? "PostgreSQL" : "локальный режим"}`; } catch (e) {}
 }
 
 // ---------- проигрыватель июля ----------
@@ -469,13 +486,13 @@ function showDay(d) {
   const total = txs.reduce((a, t) => a + t.sum_kzt, 0);
   $("#pl-stats").textContent = `${txs.length} перев. · ${money(total)}${cum ? " с 1 июля" : " за день"}`;
 }
-function stopPlay() { clearInterval(plTimer); plTimer = null; $("#pl-toggle").textContent = "▶"; }
+function stopPlay() { clearInterval(plTimer); plTimer = null; $("#pl-toggle").textContent = "Играть"; }
 $("#btn-play").onclick = openPlayer;
 $("#pl-day").oninput = e => showDay(+e.target.value);
 $("#pl-cum").onchange = () => showDay(+$("#pl-day").value);
 $("#pl-toggle").onclick = () => {
   if (plTimer) return stopPlay();
-  $("#pl-toggle").textContent = "❚❚";
+  $("#pl-toggle").textContent = "Пауза";
   if (+$("#pl-day").value >= 31) showDay(1);
   plTimer = setInterval(() => { const d = +$("#pl-day").value; d >= 31 ? stopPlay() : showDay(d + 1); }, 700);
 };
@@ -517,6 +534,61 @@ async function drawSankey() {
   box.innerHTML = `<svg width="${W}" height="${H + 40}">${svg}</svg>`;
   $("#graph-hint").textContent = "Потоки денег: куда уходят средства 81 seed по коленам и ролям";
 }
+
+// ---------- лаборатория порогов ----------
+let KNOBS = null, labTimer = null, LAB_ROLES = null;
+async function openLab() {
+  $("#lab").classList.remove("hidden");
+  if (!KNOBS) KNOBS = await api("whatif");
+  $("#lab-knobs").innerHTML = KNOBS.map((k, i) => `<div class="knob">
+      <label>${k.label}<b id="kv${i}">${fmtKnob(k, k.value)}</b></label>
+      <input type="range" data-i="${i}" min="${k.min}" max="${k.max}" step="${k.step}" value="${k.value}"></div>`).join("");
+  $("#lab-knobs").querySelectorAll("input").forEach(el => el.oninput = () => {
+    const k = KNOBS[+el.dataset.i], v = +el.value;
+    const b = $("#kv" + el.dataset.i); b.textContent = fmtKnob(k, v); b.classList.toggle("chg", v !== k.value);
+    clearTimeout(labTimer); labTimer = setTimeout(runLab, 120);
+  });
+  runLab();
+}
+const fmtKnob = (k, v) => k.key.includes("sum") ? money(v) : k.key.includes("ratio") ? Math.round(v * 100) + "%" : v;
+async function runLab() {
+  const overrides = {};
+  $("#lab-knobs").querySelectorAll("input").forEach(el => {
+    const k = KNOBS[+el.dataset.i]; if (+el.value !== k.value) overrides[k.section + "." + k.key] = +el.value;
+  });
+  const r = await api("whatif", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ overrides }) });
+  LAB_ROLES = r.roles;
+  const mx = Math.max(...r.counts.filter(c => c.role !== "peripheral" && c.role !== "boundary").flatMap(c => [c.base, c.new]), 1);
+  const rows = r.counts.filter(c => c.role !== "peripheral" && c.role !== "boundary").map(c => {
+    const d = c.new - c.base;
+    return `<div class="cmp"><span>${ROLES[c.role].ru}</span><span class="tr">
+      <i class="b" style="width:${100 * c.base / mx}%"></i><i class="n" style="width:${100 * c.new / mx}%;background:${ROLES[c.role].color}"></i></span>
+      <span class="v">${c.new}${d ? ` <span class="${d > 0 ? "up" : "dn"}">${d > 0 ? "+" : ""}${d}</span>` : ""}</span></div>`;
+  }).join("");
+  $("#lab-result").innerHTML = `<h3 style="margin:0 0 8px">Роли: было (серым) → стало</h3>${rows}
+    <h3 style="margin:14px 0 6px">Сменили роль: <span class="num" style="color:var(--ink)">${r.changed}</span> узлов</h3>
+    ${r.transitions.slice(0, 8).map(t => `<div class="trans">${ROLES[t.from].ru} → ${ROLES[t.to].ru}<b>${t.n}</b></div>`).join("")
+      || '<div class="note">Роли совпадают с базовыми — правила пайплайна и лаборатории одинаковы.</div>'}
+    ${r.top_changed.length ? `<h3 style="margin:14px 0 6px">Самые приоритетные из изменившихся</h3>` + r.top_changed.slice(0, 8).map(t =>
+      `<div class="trans" data-gid="${t.gid}"><span class="num">${short(t.gid)}</span> ${ROLES[t.old].ru} → ${ROLES[t.new].ru}<b>${t.priority_score.toFixed(2)}</b></div>`).join("") : ""}`;
+  $("#lab-result").querySelectorAll(".trans[data-gid]").forEach(el => el.onclick = () => select(el.dataset.gid));
+  paintLab();
+}
+function paintLab() {  // перекрашиваем граф по новым ролям, изменившиеся — с янтарной обводкой
+  if (!cy || state.mode === "flows") return;
+  cy.batch(() => cy.nodes().forEach(n => {
+    if (!n.scratch("_base")) n.scratch("_base", n.data("role"));
+    const nr = LAB_ROLES && LAB_ROLES[n.id()];
+    n.data("role", nr || n.scratch("_base"));
+    n.toggleClass("changed", !!nr);
+  }));
+}
+function closeLab() {
+  $("#lab").classList.add("hidden"); LAB_ROLES = null; paintLab();
+}
+$("#btn-lab").onclick = () => $("#lab").classList.contains("hidden") ? openLab() : closeLab();
+$("#lab-close").onclick = closeLab;
+$("#lab-reset").onclick = () => { KNOBS && openLab(); };
 
 (async () => {
   try { CFG = await api("config"); } catch (e) { /* без конфига просто не рисуем разложение */ }

@@ -2,15 +2,15 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Аналитическая справка</title>
+<title>Справка — Tamyr</title>
 <style>
   @page { size: A4; margin: 16mm 14mm; }
   * { box-sizing: border-box; }
   body { font: 11.5px/1.45 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #111; margin: 0; background: #e9ebef; }
   .sheet { max-width: 800px; margin: 20px auto; background: #fff; padding: 36px 40px; box-shadow: 0 2px 16px rgba(0,0,0,.08); }
   .bar { max-width: 800px; margin: 16px auto 0; display: flex; gap: 8px; }
-  .bar button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid #2f5bea; background: #2f5bea; color: #fff; cursor: pointer; }
-  .bar button.ghost { background: #fff; color: #2f5bea; }
+  .bar button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid #F0B429; background: #F0B429; color: #111; cursor: pointer; }
+  .bar button.ghost { background: #fff; color: #111; }
   .bar span { color: #666; align-self: center; }
   .stamp { display: flex; justify-content: space-between; font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: .06em; border-bottom: 2px solid #111; padding-bottom: 6px; }
   h1 { font-size: 18px; margin: 14px 0 2px; }
@@ -100,7 +100,7 @@ async function build() {
   if (n.outgoing.length) actions.push(`Проверить крупнейших получателей: ${n.outgoing.slice(0, 3).map(f => f.gid).join(", ")}.`);
 
   document.getElementById("doc").innerHTML = `
-  <div class="stamp"><span>Для служебного пользования</span><span>Сформировано: ${new Date().toLocaleString("ru-RU")}</span></div>
+  <div class="stamp"><span><b style="letter-spacing:.14em;color:#111">TAMYR</b> · Для служебного пользования</span><span>Сформировано: ${new Date().toLocaleString("ru-RU")}</span></div>
   <h1>Аналитическая справка по клиенту</h1>
   <div class="gid">gid ${gid}</div>
   <div class="disclaimer">Справка сформирована автоматически по структуре переводов (июль 2026, внутрибанковские переводы ≥5 000 ₸).
@@ -161,7 +161,7 @@ async function build() {
 
   <div id="ai-block"></div>
 
-  <div class="sign">Инструмент «Граф денег» · роли определены по формальным правилам с порогами (см. README проекта) ·
+  <div class="sign">Tamyr · роли определены по формальным правилам с порогами (см. README проекта) ·
     идентификаторы обезличены. Справка не является заключением о виновности.</div>`;
 }
 
