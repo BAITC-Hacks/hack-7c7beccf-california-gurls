@@ -318,6 +318,7 @@ function signals(n, routes, split, cyc) {
   const s = [
     ["Сборщик 2-го уровня", n.second_level, n.second_level ? `${n.hub_payers} хабов` : `${n.hub_payers} хабов`, "платят ≥6 узлов-хабов, деньги ≥5 seed"],
     ["Сквозной транзит", n.fast_share >= .5, pct(n.fast_share), "доля поступлений, ушедших дальше за ≤2 дня"],
+    ["Всплеск активности", !!n.burst, n.burst_day ? `${Math.round(n.burst_share * 100)}% за день` : "нет", n.burst ? `пиковый день ${n.burst_day}: ≥60% оборота месяца` : "оборот распределён по дням"],
     ["Синхронные поступления", n.max_payers_same_day >= 3, `${n.max_payers_same_day} плательщ.`, "максимум разных плательщиков в один день"],
     ["Дробление сумм", n.split_out + n.split_in > 0, `${n.split_out + n.split_in} эпиз.`, "≥3 перевода одному получателю в день"],
     ["Возвратные потоки", n.cycles > 0, `${n.cycles} цепоч.`, "деньги возвращаются к отправителю (≤4 шага)"],

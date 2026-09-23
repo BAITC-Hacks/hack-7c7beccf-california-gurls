@@ -38,11 +38,13 @@ def top_nodes(f: pd.DataFrame, n: int) -> pd.DataFrame:
 
 
 def why(x) -> str:
-    parts = [f"{ROLE_RU[x.role].capitalize()} (уверенность {x.role_score:.2f}): {x.evidence}."]
+    parts = [f"{ROLE_RU[x.role].capitalize()} (уверенность {x.role_score:.2f}): {x.evidence.rstrip('.…')}"]
     parts.append(f"Деньги от {x.seed_reach} seed доходят до узла по цепочкам" if x.seed_reach else "Не связан с seed по входящим цепочкам")
     parts.append(f"оборот {money(x.in_sum + x.out_sum)}; центральность выше, чем у {x.c_central:.0%} узлов")
     if x.fast_share >= 0.5:
         parts.append(f"{x.fast_share:.0%} входящих уходит дальше за ≤2 дня")
+    if x.burst:
+        parts.append(f"всплеск: {x.burst_share:.0%} оборота за один день ({x.burst_day})")
     if x.max_payers_same_day >= 3:
         parts.append(f"до {x.max_payers_same_day} плательщиков в один день")
     if x.anomaly:

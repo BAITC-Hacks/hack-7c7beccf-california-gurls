@@ -54,9 +54,9 @@ def hypothesis(c, g: pd.DataFrame, internal: float) -> str:
     parts = []
     if n_seed >= 2 and rc.get("consolidator", 0) + rc.get("coordinator", 0) > 0:
         h = hubs.index[0]
-        parts.append(f"Сбор средств с {n_seed} seed через узел {h} ({hubs.iloc[0].role})")
+        parts.append(f"Гипотеза: сбор средств с {n_seed} seed через узел {h} ({hubs.iloc[0].role})")
     elif n_seed >= 2:
-        parts.append(f"Группа из {n_seed} seed с общими контрагентами")
+        parts.append(f"Гипотеза: группа из {n_seed} seed с общими контрагентами")
     elif n_seed == 1:
         parts.append("Периферия одного seed")
     else:

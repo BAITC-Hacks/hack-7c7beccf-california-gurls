@@ -6,7 +6,7 @@ from . import store
 
 
 def get_node(gid: str) -> dict:
-    n = store.node(gid)
+    n = store.node(str(gid))
     if not n:
         return {"error": f"узел {gid} не найден"}
     nb = store.neighbors(gid)

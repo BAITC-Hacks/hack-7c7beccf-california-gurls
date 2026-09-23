@@ -57,6 +57,13 @@ def test_seeds_are_never_transit(result):
     assert not (n.is_seed & (n.role == "transit")).any()
 
 
+def test_fast_share_never_exceeds_what_was_sent(result):
+    """Сквозной транзит не может быть больше реально отправленного (без двойного счёта исходящих)."""
+    n = result["nodes"]
+    ok = n[~n.inflow_incomplete & n.pass_ratio.notna()]
+    assert (ok.fast_share <= ok.pass_ratio + 1e-9).all()
+
+
 def test_rules_match_thresholds(result, cfg):
     """Каждая роль действительно удовлетворяет своему правилу из config.yaml (объяснимость)."""
     n, r = result["nodes"], cfg["roles"]

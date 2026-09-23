@@ -24,7 +24,7 @@ NODE_FIELDS = ["gid", "role", "role_score", "cluster_id", "priority_score", "evi
                "component", "cycles", "reciprocal", "hub_payers", "second_level",
                "split_out", "split_in", "split_tx", "near_threshold_share",
                "role_stability", "alt_role", "anomaly", "anomaly_score", "anomaly_text", "routes_mid",
-               "c_role", "c_money", "c_seed", "c_central"]
+               "c_role", "c_money", "c_seed", "c_central", "burst", "burst_share", "burst_day"]
 
 _lock = threading.Lock()
 
@@ -106,6 +106,8 @@ def graph() -> nx.DiGraph:
 
 
 def node(gid: str) -> dict | None:
+    if not str(gid).isdigit():
+        return None
     rows = q(f"SELECT {', '.join(NODE_FIELDS)} FROM nodes WHERE gid = %s", (int(gid),))
     if not rows:
         return None

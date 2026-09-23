@@ -37,9 +37,15 @@
       <button data-tab="chat">Ассистент</button>
     </nav>
     <section id="tab-top" class="tab active">
+      <div class="status-tabs" id="status-tabs">
+        <button data-st="all" class="active">Все<span></span></button>
+        <button data-st="none">Не проверены<span></span></button>
+        <button data-st="review">На проверке<span></span></button>
+        <button data-st="confirmed">Подтверждены<span></span></button>
+        <button data-st="rejected">Отклонены<span></span></button>
+      </div>
       <div class="filters">
         <label class="chk"><input type="checkbox" id="hide-seed"> без seed</label>
-        <label class="chk"><input type="checkbox" id="hide-marked"> без проверенных</label>
         <span id="marks-summary" class="note"></span>
       </div>
       <div class="list-head"><span>#</span><span>Клиент · роль</span><span>Приоритет</span></div>

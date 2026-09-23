@@ -21,7 +21,7 @@ const pill = (text, c) => `<span class="badge" style="color:${c};background:${c}
 const badge = role => pill(ROLES[role].ru, role === "peripheral" ? "#9AA3AF" : ROLES[role].color);
 const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 
-let cy, FULL, CFG = null, MARKS = new Map(), state = { mode: "full", color: "role", hops: 1, selected: null };
+let cy, FULL, CFG = null, MARKS = new Map(), TOP = [], state = { mode: "full", color: "role", hops: 1, selected: null, status: "all" };
 const MARK = { confirmed: { ic: "OK", ru: "подтверждено" }, review: { ic: "ПРВ", ru: "на проверке" }, rejected: { ic: "ОТК", ru: "отклонено" } };
 const ROLE_RU_ALT = r => ROLES[r] ? ROLES[r].ru : r;
 
@@ -207,7 +207,8 @@ async function renderCard(gid) {
       ${n.cycles ? pill("циклов " + n.cycles, "#E8A13A") : ""}
       ${n.split_out + n.split_in ? pill("дробление " + (n.split_out + n.split_in), "#E8A13A") : ""}
       ${n.anomaly ? pill("аномалия для колена", "#FF9F6B") : ""}
-      ${n.routes_mid ? pill("маршрутов A→B→C " + n.routes_mid, "#9AA3AF") : ""}</div>
+      ${n.routes_mid ? pill("маршрутов A→B→C " + n.routes_mid, "#9AA3AF") : ""}
+      ${n.burst ? pill("всплеск активности", "#E8A13A") : ""}</div>
     <div class="evidence">${esc(n.evidence)}</div>
     ${caveats.map(c => `<div class="caveat">! ${c}</div>`).join("")}
     <div class="stab">Устойчивость роли: <b style="color:${n.role_stability >= .9 ? "var(--in)" : n.role_stability >= .7 ? "var(--warn)" : "var(--out)"}">${Math.round(n.role_stability * 100)}%</b>
@@ -228,6 +229,8 @@ async function renderCard(gid) {
       <div><small>Возвратные цепочки / встречные</small><b>${n.cycles} / ${n.reciprocal}</b></div>
       <div><small>Эпизоды дробления (отпр. / получ.)</small><b>${n.split_out} / ${n.split_in}</b></div>
       <div><small>Доля переводов 5–10 тыс ₸</small><b>${Math.round(n.near_threshold_share * 100)}%</b></div>
+      <div><small>Пиковый день · доля оборота</small><b>${n.burst_day ? n.burst_day.slice(8) + ".07 · " + Math.round(n.burst_share * 100) + "%" : "—"}</b></div>
+      <div><small>Активных дней</small><b>${n.active_days}</b></div>
     </div>
     <div class="actions">
       <button class="btn" id="btn-ego">Окрестность</button>
@@ -311,7 +314,7 @@ function renderMarkBox(gid, mark) {
   $("#markbox").querySelectorAll("button").forEach(b => b.onclick = async () => {
     const r = await api("marks/" + gid, { method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ status: b.dataset.s, comment: $("#mark-comment").value }) });
-    r.mark ? MARKS.set(gid, r.mark) : MARKS.delete(gid);
+    await loadMarks();                 // перечитываем с ролью и приоритетом для вкладок статусов
     renderMarkBox(gid, r.mark); renderTop();
   });
 }
@@ -320,18 +323,37 @@ async function loadMarks() { MARKS = new Map((await api("marks")).map(m => [m.gi
 
 // ---------- левые панели ----------
 async function renderTop() {
-  const top = await api("top?n=50");
-  const hide = $("#hide-seed").checked, hideM = $("#hide-marked").checked;
-  const cnt = s => [...MARKS.values()].filter(m => m.status === s).length;
-  $("#marks-summary").textContent = MARKS.size ? `подтв. ${cnt("confirmed")} · на пров. ${cnt("review")} · откл. ${cnt("rejected")}` : "";
-  $("#top-list").innerHTML = top.filter(t => !(hide && t.is_seed) && !(hideM && MARKS.has(t.gid))).map(t => `
+  if (!TOP.length) TOP = await api("top?n=50");
+  const hide = $("#hide-seed").checked, st = state.status;
+  const cnt = k => [...MARKS.values()].filter(m => m.status === k).length;
+  const counts = { all: TOP.length, none: TOP.filter(t => !MARKS.has(t.gid)).length,
+                   review: cnt("review"), confirmed: cnt("confirmed"), rejected: cnt("rejected") };
+  document.querySelectorAll("#status-tabs button").forEach(b => {
+    b.classList.toggle("active", b.dataset.st === st); b.querySelector("span").textContent = counts[b.dataset.st];
+  });
+  $("#marks-summary").textContent = st === "all" || st === "none" ? `топ-${TOP.length} по приоритету` : "все клиенты с этим статусом";
+  const rankOf = new Map(TOP.map(t => [t.gid, t.rank]));
+  let rows;
+  if (st === "all" || st === "none") {
+    rows = TOP.filter(t => st === "all" || !MARKS.has(t.gid)).map(t => ({ ...t, text: t.why }));
+  } else {   // статусные вкладки показывают всех отмеченных клиентов, даже вне топ-50
+    rows = [...MARKS.values()].filter(m => m.status === st)
+      .map(m => ({ gid: m.gid, role: m.role || "peripheral", priority_score: m.priority_score ?? 0, rank: rankOf.get(m.gid) || "—",
+                   is_seed: false, text: (m.comment ? "Комментарий: " + m.comment : "Без комментария") + " · " + (m.updated_at || "").slice(0, 16) }))
+      .sort((a, b) => b.priority_score - a.priority_score);
+  }
+  rows = rows.filter(t => !(hide && t.is_seed));
+  $("#top-list").innerHTML = rows.length ? rows.map(t => `
     <li class="item" data-gid="${t.gid}"><div class="row"><span class="rank">${t.rank}</span>${badge(t.role)}
       <span class="gid">${short(t.gid)}</span>${t.is_seed ? '<span class="badge seed">seed</span>' : ""}
       ${MARKS.has(t.gid) ? `<span class="mk ${MARKS.get(t.gid).status}" title="${MARK[MARKS.get(t.gid).status].ru}">${MARK[MARKS.get(t.gid).status].ic}</span>` : ""}
-      <span class="pbar"><i style="width:${t.priority_score * 100}%"></i></span><span class="score">${t.priority_score.toFixed(2)}</span></div>
-      <div class="why">${esc(t.why)}</div></li>`).join("");
+      <span class="pbar"><i style="width:${t.priority_score * 100}%"></i></span><span class="score">${(+t.priority_score).toFixed(2)}</span></div>
+      <div class="why">${esc(t.text)}</div></li>`).join("")
+    : `<li class="empty-list">${st === "none" ? "Все клиенты из топ-листа уже проверены" : "Пока нет клиентов с этим статусом. Отметьте клиента в его карточке."}</li>`;
   $("#top-list").querySelectorAll(".item").forEach(el => el.onclick = () => select(el.dataset.gid));
+  document.querySelectorAll(".item").forEach(el => el.classList.toggle("sel", el.dataset.gid === state.selected));
 }
+document.querySelectorAll("#status-tabs button").forEach(b => b.onclick = () => { state.status = b.dataset.st; renderTop(); });
 
 async function renderGaps() {
   const g = await api("next_requests?n=40");
@@ -425,15 +447,16 @@ document.querySelectorAll("#hops button").forEach(b => b.onclick = () => {
   else $("#graph-hint").textContent = "Сначала выберите узел — затем покажу его окрестность";
 });
 $("#hide-seed").onchange = renderTop;
-$("#hide-marked").onchange = renderTop;
+
 
 $("#btn-resilience").onclick = async () => {
   const r = await api("resilience?top_n=10");
-  $("#resilience").innerHTML = `<div class="res">Если заблокировать топ-10 (без seed):<br>
+  $("#resilience").innerHTML = `<div class="res">Если заблокировать топ-10 (без seed) — гипотетически:<br>
     компонент связности: <b>${r.before.components} → ${r.after.components}</b><br>
     крупнейшая компонента: <b>${r.before.largest_component} → ${r.after.largest_component}</b><br>
     узлов, достижимых от seed: <b>${r.before.nodes_reachable_from_seed} → ${r.after.nodes_reachable_from_seed}</b> (−${Math.round(r.reach_cut_share * 100)}%)<br>
-    оборот в сети: −${Math.round(r.flow_cut_share * 100)}%</div>`;
+    оборот в сети: −${Math.round(r.flow_cut_share * 100)}%<br>
+    <span class="note">Число компонент включает 19 seed без переводов (16 связных + 19 изолированных = 35).</span></div>`;
 };
 
 function renderLegend() {

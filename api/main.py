@@ -13,6 +13,18 @@ from . import assistant, store, tools, whatif
 app = FastAPI(title="Tamyr — HackAlem AI")
 
 
+def _gid(gid: str) -> str:
+    """gid — 1–20 цифр; иначе 404, а не 500."""
+    gid = gid.strip()
+    if not gid.isdigit() or len(gid) > 20:
+        raise HTTPException(404, "клиент не найден: gid должен состоять из цифр")
+    return gid
+
+
+def _n(n: int, hi: int = 200) -> int:
+    return max(1, min(int(n), hi))
+
+
 @app.get("/api/config")
 def config():
     """Пороги и веса из pipeline/config.yaml — интерфейс показывает, из чего сложился приоритет."""
@@ -45,6 +57,7 @@ def full_graph():
 
 @app.get("/api/node/{gid}")
 def node(gid: str):
+    gid = _gid(gid)
     n = store.node(gid)
     if not n:
         raise HTTPException(404, "узел не найден")
@@ -53,6 +66,9 @@ def node(gid: str):
 
 @app.get("/api/ego/{gid}")
 def ego(gid: str, hops: int = 1, direction: str = "both"):
+    gid = _gid(gid)
+    if direction not in ("in", "out", "both"):
+        raise HTTPException(400, "direction: in | out | both")
     return store.ego(gid, max(1, min(hops, 4)), direction)
 
 
@@ -65,7 +81,7 @@ def search(q: str):
 
 @app.get("/api/top")
 def top(n: int = 30):
-    return store.q("SELECT * FROM top_nodes ORDER BY rank LIMIT %s", (n,))
+    return store.q("SELECT * FROM top_nodes ORDER BY rank LIMIT %s", (_n(n),))
 
 
 @app.get("/api/clusters")
@@ -85,6 +101,7 @@ def next_requests(n: int = 40):
 
 @app.get("/api/cycles/{gid}")
 def cycles(gid: str):
+    gid = _gid(gid)
     return tools.find_cycles(gid)
 
 
@@ -125,6 +142,10 @@ class WhatIf(BaseModel):
 
 @app.post("/api/whatif")
 def whatif_run(w: WhatIf):
+    allowed = {f"{k['section']}.{k['key']}" for k in whatif.knobs()}
+    bad = set(w.overrides) - allowed
+    if bad:
+        raise HTTPException(400, f"неизвестные пороги: {', '.join(sorted(bad))}")
     return whatif.run(w.overrides)
 
 
@@ -140,6 +161,7 @@ def marks():
 
 @app.post("/api/marks/{gid}")
 def set_mark(gid: str, m: Mark):
+    gid = _gid(gid)
     if m.status not in (None, "", "clear", "confirmed", "rejected", "review"):
         raise HTTPException(400, "status: confirmed | rejected | review | clear")
     return {"gid": gid, "mark": store.set_mark(gid, m.status, m.comment)}
@@ -158,12 +180,13 @@ class Chat(BaseModel):
 def ask(chat: Chat):
     try:
         return assistant.ask(chat.messages)
-    except RuntimeError as e:
+    except RuntimeError as e:          # нет ключа или провайдер недоступен
         raise HTTPException(503, str(e))
 
 
 @app.post("/api/node/{gid}/card")
 def card(gid: str):
+    gid = _gid(gid)
     try:
         return assistant.node_card(gid)
     except RuntimeError as e:

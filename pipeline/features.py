@@ -29,18 +29,46 @@ def build_graph(nodes, edges) -> nx.DiGraph:
 
 
 def fast_forward_share(tx: pd.DataFrame, days: int) -> pd.Series:
-    """Доля входящих денег узла, после которых в течение `days` дней был исходящий перевод
-    (не меньше 50% входящей суммы). Признак сквозного транзита."""
-    inc = tx[["dst", "date", "sum_kzt"]].rename(columns={"dst": "gid", "date": "d_in", "sum_kzt": "s_in"})
-    out = tx[["src", "date", "sum_kzt"]].rename(columns={"src": "gid", "date": "d_out", "sum_kzt": "s_out"})
-    inc = inc.reset_index().rename(columns={"index": "in_id"})
-    m = inc.merge(out, on="gid")
-    m = m[(m.d_out >= m.d_in) & (m.d_out <= m.d_in + pd.Timedelta(days=days))]
-    fwd = m.groupby("in_id").s_out.sum()
-    inc["fwd"] = inc.in_id.map(fwd).fillna(0)
-    inc["is_fast"] = inc.fwd >= 0.5 * inc.s_in
-    g = inc.groupby("gid")
-    return (g.apply(lambda x: x.loc[x.is_fast, "s_in"].sum() / x.s_in.sum(), include_groups=False))
+    """Сквозной транзит: какая доля поступлений ушла дальше в течение `days` дней.
+    Каждый исходящий перевод распределяется по самым ранним ещё не «израсходованным» поступлениям
+    за предыдущие `days` дней (FIFO) — одна и та же сумма не засчитывается дважды,
+    поэтому fast_share никогда не превышает долю реально отправленного (pass_ratio)."""
+    window = pd.Timedelta(days=days)
+    inc = tx[["dst", "date", "sum_kzt"]].rename(columns={"dst": "gid"})
+    out = tx[["src", "date", "sum_kzt"]].rename(columns={"src": "gid"})
+    out_by = {g: d.sort_values("date") for g, d in out.groupby("gid")}
+    res = {}
+    for g, d in inc.groupby("gid"):
+        total = d.sum_kzt.sum()
+        if g not in out_by or total <= 0:
+            res[g] = 0.0
+            continue
+        pool = [[r.date, r.sum_kzt] for r in d.sort_values("date").itertuples()]   # [дата, остаток]
+        forwarded = 0.0
+        for o in out_by[g].itertuples():
+            need = o.sum_kzt
+            for p in pool:
+                if need <= 0:
+                    break
+                if p[1] <= 0 or p[0] > o.date or o.date - p[0] > window:
+                    continue
+                take = min(p[1], need)
+                p[1] -= take
+                need -= take
+                forwarded += take
+        res[g] = forwarded / total
+    return pd.Series(res, dtype=float)
+
+
+def activity_bursts(tx: pd.DataFrame) -> pd.DataFrame:
+    """Всплеск активности: какая доля месячного оборота узла пришлась на один самый активный день."""
+    t = pd.concat([tx[["src", "date", "sum_kzt"]].rename(columns={"src": "gid"}),
+                   tx[["dst", "date", "sum_kzt"]].rename(columns={"dst": "gid"})])
+    daily = t.groupby(["gid", t.date.dt.date]).sum_kzt.sum()
+    g = daily.groupby(level=0)
+    out = pd.DataFrame({"burst_share": (g.max() / g.sum()).round(3),
+                        "burst_day": g.idxmax().map(lambda x: str(x[1]))})
+    return out
 
 
 def splitting_episodes(tx: pd.DataFrame, cfg: dict) -> pd.DataFrame:
@@ -100,6 +128,13 @@ def node_features(nodes, edges, tx, G, cfg) -> pd.DataFrame:
                         tx[["dst", "sum_kzt"]].rename(columns={"dst": "gid"})])
     f["near_threshold_share"] = (all_tx.assign(n=all_tx.sum_kzt <= thr).groupby("gid").n.mean()
                                  .reindex(f.index).fillna(0).round(3))
+
+    # всплески: доля оборота в самый активный день (значимо только при ≥3 активных днях)
+    b = activity_bursts(tx).reindex(f.index)
+    f["burst_share"] = b.burst_share.fillna(0)
+    f["burst_day"] = b.burst_day.fillna("")
+    bc_ = cfg.get("burst", {"min_share": 0.6, "min_active_days": 3})
+    f["burst"] = (f.burst_share >= bc_["min_share"]) & (f.active_days >= bc_["min_active_days"])
 
     # центральность: PageRank по направлению денег (вес = сумма) и betweenness
     pr = nx.pagerank(G, weight="sum_kzt")

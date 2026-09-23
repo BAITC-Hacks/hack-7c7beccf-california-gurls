@@ -92,13 +92,13 @@ def evidence(x) -> str:
         pr = f", отдаёт в {x.pass_ratio:.1f}× больше видимого входа — есть внешние источники"
     r = x.role
     if r == "coordinator" and x.second_level:
-        s = (f"Сборщик 2-го уровня: платят {x.hub_payers} узлов-хабов (сборщики/распределители), "
+        s = (f"Признаки сборщика 2-го уровня: платят {x.hub_payers} узлов-хабов (сборщики/распределители), "
              f"до узла доходят деньги {x.seed_reach} seed; вход {money(x.in_sum)}{pr}")
     elif r == "coordinator":
         s = (f"Признаки координации: получает от {x.in_deg} плательщиков ({money(x.in_sum)}), "
              f"рассылает {x.out_deg} получателям ({money(x.out_sum)}){seed_note}")
     elif r == "distributor":
-        s = f"Веерное распределение: {x.out_deg} получателей, {money(x.out_sum)}{pr}{seed_note}"
+        s = f"Признаки веерного распределения: {x.out_deg} получателей, {money(x.out_sum)}{pr}{seed_note}"
     elif r == "consolidator":
         s = (f"Признаки консолидации: получает от {x.in_deg} разных плательщиков"
              f"{f' (из них seed: {x.seed_payers})' if x.seed_payers else ''}, {money(x.in_sum)}{pr}")
@@ -106,7 +106,7 @@ def evidence(x) -> str:
         s = (f"Признаки транзита: пропускает {x.pass_ratio:.0%} полученного ({money(x.in_sum)})"
              f"{f', {x.fast_share:.0%} уходит дальше за ≤2 дня' if x.fast_share > 0 else ''}")
     elif r == "terminal":
-        s = (f"Конечный получатель: {money(x.in_sum)} от {x.in_deg} плательщиков, "
+        s = (f"Признаки конечного получателя: {money(x.in_sum)} от {x.in_deg} плательщиков, "
              f"{'исходящих нет' if x.out_deg == 0 else f'дальше уходит {x.pass_ratio:.0%}'} (колено {x.depth})")
     elif r == "boundary":
         s = (f"Граница выгрузки: {x.depth}-е колено, исходящие не выгружались. Получил {money(x.in_sum)} "
@@ -117,8 +117,12 @@ def evidence(x) -> str:
         else:
             s = (f"Признаков роли не выявлено: вход {x.in_deg} ({money(x.in_sum)}), "
                  f"выход {x.out_deg} ({money(x.out_sum)}){seed_note}")
-    if (x.split_out + x.split_in) and len(s) < 150:
-        s += f"; дробление: {x.split_out + x.split_in} эпиз. (≥3 перевода одному получателю в день)"
-    if x.reciprocal and len(s) < 160:
-        s += f"; встречные переводы: {x.reciprocal} контрагент(ов)"
-    return s[:200]
+    # дополнительные признаки добавляем, только если фраза помещается целиком (лимит ТЗ — 200 символов)
+    for extra in ([f"; дробление: {x.split_out + x.split_in} эпиз. (≥3 перевода одному получателю в день)"]
+                  if (x.split_out + x.split_in) else []) + \
+                 ([f"; встречные переводы: {x.reciprocal} контрагент(ов)"] if x.reciprocal else []):
+        if len(s) + len(extra) <= 200:
+            s += extra
+    if len(s) > 200:
+        s = s[:199].rsplit(" ", 1)[0].rstrip(",;:") + "…"
+    return s

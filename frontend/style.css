@@ -207,3 +207,15 @@ aside.right { padding: 16px; }
 /* ---------- подсказка ---------- */
 .tip { position: fixed; z-index: 50; pointer-events: none; background: var(--panel-3); border: 1px solid var(--line-2); color: var(--ink);
        padding: 6px 9px; border-radius: 5px; font-size: 12px; box-shadow: 0 6px 18px rgba(0,0,0,.5); max-width: 280px; }
+
+/* вкладки статусов проверки */
+.status-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.status-tabs button { border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); border-radius: 999px; padding: 3px 10px; font-size: 12px; display: inline-flex; gap: 6px; align-items: center; }
+.status-tabs button:hover { color: var(--ink); border-color: var(--line-2); }
+.status-tabs button span { font: 600 11px var(--mono); color: var(--dim); }
+.status-tabs button.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.status-tabs button.active span { color: var(--accent); }
+.status-tabs button[data-st=confirmed].active { background: rgba(46,189,133,.12); border-color: var(--in); color: var(--in); }
+.status-tabs button[data-st=confirmed].active span { color: var(--in); }
+.status-tabs button[data-st=rejected].active { background: var(--panel-3); border-color: var(--muted); color: var(--ink); }
+.empty-list { color: var(--muted); font-size: 12px; padding: 18px 8px; text-align: center; }

@@ -20,7 +20,9 @@ PROVIDERS = {
     "nvidia": {"base_url": "https://integrate.api.nvidia.com/v1", "key_env": "NVIDIA_API_KEY",
                "model": "meta/llama-3.3-70b-instruct"},
 }
-PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
+PROVIDER = os.getenv("LLM_PROVIDER", "openai").strip().lower()
+if PROVIDER not in PROVIDERS:          # неизвестный провайдер не должен ронять весь API
+    PROVIDER = "openai"
 _P = PROVIDERS[PROVIDER]
 MODEL = os.getenv("LLM_MODEL") or _P["model"]
 
@@ -74,11 +76,22 @@ FUNCS = {t["name"]: getattr(tools, t["name"]) for t in TOOLS_SPEC}
 
 
 def _client():
-    key = os.getenv(_P["key_env"])
-    if not key:
+    key = (os.getenv(_P["key_env"]) or "").strip()
+    if not key or "..." in key:        # пусто или заглушка из .env.example
         raise RuntimeError(f"{_P['key_env']} не задан (LLM_PROVIDER={PROVIDER}) — AI-функции отключены")
     from openai import OpenAI
     return OpenAI(api_key=key, base_url=os.getenv("LLM_BASE_URL") or _P["base_url"])
+
+
+class LLMError(RuntimeError):
+    """Ошибка провайдера LLM (неверный ключ, модель, сеть) — API вернёт 503 с понятным текстом."""
+
+
+def _call(client, **kw):
+    try:
+        return client.chat.completions.create(**kw)
+    except Exception as e:  # openai.APIError, сетевые ошибки и т.п.
+        raise LLMError(f"LLM-провайдер {PROVIDER} недоступен: {type(e).__name__}: {str(e)[:200]}") from e
 
 
 def ask(messages: list[dict], max_steps: int = 6) -> dict:
@@ -87,8 +100,8 @@ def ask(messages: list[dict], max_steps: int = 6) -> dict:
     msgs = [{"role": "system", "content": SYSTEM}] + messages
     trace = []
     for _ in range(max_steps):
-        r = client.chat.completions.create(model=MODEL, messages=msgs, temperature=0.1,
-                                           tools=[{"type": "function", "function": t} for t in TOOLS_SPEC])
+        r = _call(client, model=MODEL, messages=msgs, temperature=0.1,
+                  tools=[{"type": "function", "function": t} for t in TOOLS_SPEC])
         m = r.choices[0].message
         if not m.tool_calls:
             return {"answer": m.content, "trace": trace}
@@ -97,10 +110,11 @@ def ask(messages: list[dict], max_steps: int = 6) -> dict:
                                      "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
                                     for tc in m.tool_calls]})
         for tc in m.tool_calls:
-            args = json.loads(tc.function.arguments or "{}")
             try:
+                args = json.loads(tc.function.arguments or "{}")
                 res = FUNCS[tc.function.name](**args)
             except Exception as e:  # ошибка инструмента → модели, пусть скорректирует вызов
+                args = locals().get("args", {})
                 res = {"error": str(e)}
             trace.append({"tool": tc.function.name, "args": args})
             msgs.append({"role": "tool", "tool_call_id": tc.id,
@@ -117,7 +131,6 @@ def node_card(gid: str) -> dict:
               "2) ключевые потоки (от кого/кому, суммы), 3) на что обратить внимание, "
               "4) какой запрос/выгрузку сделать следующим шагом. Только факты из данных, формулировки-гипотезы.\n\n"
               + json.dumps(data, ensure_ascii=False, default=str))
-    r = _client().chat.completions.create(model=MODEL, temperature=0.2,
-                                          messages=[{"role": "system", "content": SYSTEM},
-                                                    {"role": "user", "content": prompt}])
+    r = _call(_client(), model=MODEL, temperature=0.2,
+              messages=[{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}])
     return {"gid": gid, "card": r.choices[0].message.content}
