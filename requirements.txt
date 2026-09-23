@@ -1,0 +1,13 @@
+# Версии проверены на Python 3.11 (Docker) и 3.12; ~= разрешает только патч-обновления
+pandas~=3.0.6
+pyarrow~=25.0.1
+numpy~=2.4.6
+networkx~=3.6.1
+scipy~=1.17.1
+pyyaml~=6.0.3
+fastapi~=0.141.1
+uvicorn~=0.53.0
+psycopg[binary]~=3.3.6
+openai~=3.19.0
+python-dotenv~=1.2.3
+duckdb~=1.5.5
