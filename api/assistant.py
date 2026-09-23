@@ -27,7 +27,8 @@ MODEL = os.getenv("LLM_MODEL") or _P["model"]
 SYSTEM = """Ты — помощник AML-аналитика банка. Работаешь с обезличенным графом переводов (июль 2026):
 81 seed-клиент (выявлены правоохранителями) и их исходящие переводы на 4 колена, порог 5000 KZT.
 Роли узлов: coordinator, distributor, consolidator, transit, terminal, boundary (4-е колено, исходящие
-не выгружались), peripheral. Правила:
+не выгружались), peripheral. У каждого узла есть role_stability — доля вариантов порогов ±20%, в которых роль
+сохраняется: упоминай её, если она ниже 0.7 (роль пограничная). Правила:
 - Отвечай ТОЛЬКО на основе результатов инструментов. Не выдумывай узлы, суммы и связи.
 - Всегда указывай gid узлов, на которые опираешься.
 - Формулируй как гипотезы для проверки («признаки консолидации»), а не как утверждение о виновности.
@@ -62,6 +63,10 @@ TOOLS_SPEC += [
                     "required": ["gid"]}},
     {"name": "find_splitting", "description": "Дробление сумм: ≥3 перевода одному получателю в один день. С gid — по узлу, без — самые выраженные в сети",
      "parameters": {"type": "object", "properties": {"gid": {"type": "string"}, "n": {"type": "integer"}}}},
+    {"name": "find_routes", "description": "Повторяющиеся маршруты A→B→C (устойчивые цепочки переводов). С gid — по узлу",
+     "parameters": {"type": "object", "properties": {"gid": {"type": "string"}, "n": {"type": "integer"}}}},
+    {"name": "anomalies", "description": "Узлы с аномальными для своего колена суммами (могут не иметь выраженной роли)",
+     "parameters": {"type": "object", "properties": {"n": {"type": "integer"}}}},
     {"name": "next_requests", "description": "Белые пятна: какие выгрузки запросить дальше и почему",
      "parameters": {"type": "object", "properties": {"n": {"type": "integer"}}}},
 ]

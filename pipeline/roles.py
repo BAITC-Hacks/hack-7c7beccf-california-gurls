@@ -28,7 +28,8 @@ def _sat(x: pd.Series, thr: float) -> pd.Series:
     return 0.5 + 0.5 * np.clip(v, 0, 1)
 
 
-def assign_roles(f: pd.DataFrame, cfg: dict, edges: pd.DataFrame | None = None) -> pd.DataFrame:
+def assign_roles(f: pd.DataFrame, cfg: dict, edges: pd.DataFrame | None = None,
+                 with_evidence: bool = True) -> pd.DataFrame:
     r = cfg["roles"]
     f = f.copy()
     pr = f.pass_ratio
@@ -78,7 +79,8 @@ def assign_roles(f: pd.DataFrame, cfg: dict, edges: pd.DataFrame | None = None) 
         f.loc[m2, "role_score"] = (_sat(f.hub_payers, c["min_hub_payers"]) * 0.6
                                    + _sat(f.seed_reach.clip(lower=1), c["min_seed_reach"]) * 0.4)[m2]
     f["role_score"] = f.role_score.clip(0, 1).round(3)
-    f["evidence"] = [evidence(row) for row in f.itertuples()]
+    if with_evidence:
+        f["evidence"] = [evidence(row) for row in f.itertuples()]
     return f
 
 

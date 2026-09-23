@@ -25,7 +25,11 @@
       <button data-tab="chat">Ассистент</button>
     </nav>
     <section id="tab-top" class="tab active">
-      <label class="chk"><input type="checkbox" id="hide-seed"> скрыть seed</label>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <label class="chk"><input type="checkbox" id="hide-seed"> скрыть seed</label>
+        <label class="chk"><input type="checkbox" id="hide-marked"> скрыть проверенные</label>
+      </div>
+      <div id="marks-summary" class="note"></div>
       <ol id="top-list" class="list"></ol>
     </section>
     <section id="tab-clusters" class="tab">
@@ -53,7 +57,9 @@
       <div class="seg" id="mode">
         <button data-mode="full" class="active">Вся сеть</button>
         <button data-mode="ego">Окрестность узла</button>
+        <button data-mode="flows">Потоки денег</button>
       </div>
+      <button class="btn ghost" id="btn-play" title="Проиграть июль по дням">▶ Июль</button>
       <div class="seg" id="color-by">
         <button data-c="role" class="active">Цвет: роль</button>
         <button data-c="cluster">Цвет: кластер</button>
@@ -65,6 +71,15 @@
       <span id="graph-hint" class="hint"></span>
     </div>
     <div id="cy"></div>
+    <div id="sankey" class="sankey hidden"></div>
+    <div id="player" class="player hidden">
+      <button class="btn" id="pl-toggle">▶</button>
+      <input type="range" id="pl-day" min="1" max="31" value="1">
+      <b id="pl-label">1 июля</b>
+      <label class="chk"><input type="checkbox" id="pl-cum"> накопительно</label>
+      <span id="pl-stats" class="hint"></span>
+      <button class="btn ghost" id="pl-close">✕</button>
+    </div>
     <div id="legend" class="legend"></div>
   </section>
 

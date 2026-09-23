@@ -85,6 +85,8 @@ async function build() {
   if (n.fast_share >= 0.5) signs.push(`Сквозной транзит: ${pct(n.fast_share)} поступлений уходит дальше в течение 2 дней.`);
   if (n.max_payers_same_day >= 3) signs.push(`Синхронные поступления: до ${n.max_payers_same_day} разных плательщиков в один день.`);
   if (n.split_out + n.split_in) signs.push(`Дробление: ${n.split_out + n.split_in} эпизодов (≥3 перевода одному получателю в один день), всего ${n.split_tx} переводов.`);
+  if (n.anomaly) signs.push(`Аномальный профиль для своего колена: ${esc(n.anomaly_text)}.`);
+  if (n.routes_mid) signs.push(`Посредник в ${n.routes_mid} повторяющихся маршрутах A→B→C (перевод дальше в течение 3 дней, ≥3 повторов).`);
   if (n.cycles) signs.push(`Возвратные потоки: ${n.cycles} цепочек, в которых средства возвращаются к отправителю.`);
   if (!signs.length) signs.push("Дополнительных поведенческих признаков не выявлено.");
 
@@ -113,6 +115,9 @@ async function build() {
     <div><small>Приоритет проверки</small><b>${n.priority_score.toFixed(2)}${rank ? ` · место ${rank.rank}` : ""}</b></div>
     <div><small>Колено от исходного списка</small><b>${n.depth}${n.is_seed ? " (seed)" : ""}</b></div>
   </div>
+  <p><b>Устойчивость роли:</b> роль сохраняется в ${Math.round(n.role_stability * 100)}% вариантов порогов (±20%)${n.alt_role ? `; альтернативная трактовка — ${(ROLE_RU[n.alt_role] || n.alt_role).toLowerCase()}` : ""}.
+    ${n.role_stability < 0.7 ? "<b>Роль пограничная — вывод требует особенно внимательной проверки.</b>" : ""}</p>
+  ${n.mark ? `<p><b>Решение аналитика:</b> ${{confirmed: "гипотеза подтверждена", review: "на проверке", rejected: "гипотеза отклонена"}[n.mark.status]}${n.mark.comment ? ` — «${esc(n.mark.comment)}»` : ""} (${n.mark.updated_at.slice(0, 16)}).</p>` : ""}
   <p><b>Кластер ${n.cluster_id}</b> (${cl.n_nodes ?? "—"} клиентов, из них seed: ${cl.n_seed ?? "—"}): ${esc(cl.hypothesis)}</p>
 
   <h2>2. Финансовые показатели</h2>

@@ -45,6 +45,12 @@ def why(x) -> str:
         parts.append(f"{x.fast_share:.0%} входящих уходит дальше за ≤2 дня")
     if x.max_payers_same_day >= 3:
         parts.append(f"до {x.max_payers_same_day} плательщиков в один день")
+    if x.anomaly:
+        parts.append(f"аномалия для своего колена: {x.anomaly_text}")
+    if x.routes_mid:
+        parts.append(f"посредник в {x.routes_mid} повторяющихся маршрутах A→B→C")
+    parts.append(f"роль устойчива в {x.role_stability:.0%} вариантов порогов ±20%"
+                 + (f" (альтернатива — {ROLE_RU.get(x.alt_role, x.alt_role)})" if x.alt_role else ""))
     if x.split_out + x.split_in:
         parts.append(f"признаки дробления: {x.split_out + x.split_in} эпизодов, {x.split_tx} переводов "
                      f"(несколько платежей одному получателю в один день)")

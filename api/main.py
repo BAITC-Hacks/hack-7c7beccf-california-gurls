@@ -1,4 +1,4 @@
-"""FastAPI backend: REST поверх PostgreSQL + статика фронтенда.
+"""FastAPI backend: REST поверх PostgreSQL (или локального DuckDB) + статика фронтенда.
 
     uvicorn api.main:app --reload
 """
@@ -11,6 +11,18 @@ from pydantic import BaseModel
 from . import assistant, store, tools
 
 app = FastAPI(title="Граф денег — HackAlem AI")
+
+
+@app.get("/api/config")
+def config():
+    """Пороги и веса из pipeline/config.yaml — интерфейс показывает, из чего сложился приоритет."""
+    import yaml
+    return yaml.safe_load(open(Path(__file__).parent.parent / "pipeline" / "config.yaml", encoding="utf-8"))
+
+
+@app.get("/api/storage")
+def storage():
+    return {"backend": store.backend()}
 
 
 @app.get("/api/stats")
@@ -79,6 +91,44 @@ def cycles(gid: str):
 @app.get("/api/splitting")
 def splitting(gid: str | None = None, n: int = 20):
     return tools.find_splitting(gid, n)
+
+
+@app.get("/api/routes")
+def routes(gid: str | None = None, n: int = 20):
+    return tools.find_routes(gid, n)
+
+
+@app.get("/api/anomalies")
+def anomalies(n: int = 30):
+    return tools.anomalies(n)
+
+
+@app.get("/api/flows")
+def flows():
+    return tools.money_flows()
+
+
+@app.get("/api/timeline")
+def timeline():
+    """Все транзакции (≈5 тыс.) для проигрывателя июля."""
+    return store.q("SELECT src, dst, date, sum_kzt FROM transactions ORDER BY date")
+
+
+class Mark(BaseModel):
+    status: str | None = None      # confirmed | rejected | review | None (снять)
+    comment: str = ""
+
+
+@app.get("/api/marks")
+def marks():
+    return store.all_marks()
+
+
+@app.post("/api/marks/{gid}")
+def set_mark(gid: str, m: Mark):
+    if m.status not in (None, "", "clear", "confirmed", "rejected", "review"):
+        raise HTTPException(400, "status: confirmed | rejected | review | clear")
+    return {"gid": gid, "mark": store.set_mark(gid, m.status, m.comment)}
 
 
 @app.get("/api/resilience")

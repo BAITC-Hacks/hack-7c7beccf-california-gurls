@@ -47,7 +47,7 @@
   <text x="394" y="370" class="s">• синхронные платежи в один день</text>
   <text x="394" y="396" class="s">• возвратные циклы длиной ≤4</text>
   <text x="394" y="422" class="s">• PageRank по суммам, betweenness</text>
-  <text x="394" y="448" class="s">• флаги неполноты данных</text>
+  <text x="394" y="448" class="s">• дробление, маршруты, аномалии</text>
   <rect x="394" y="478" width="252" height="226" rx="8" fill="#f0f3fa"/>
   <text x="410" y="506" class="h" font-size="16">config.yaml</text>
   <text x="410" y="532" class="s">все пороги и веса в одном</text>
@@ -56,7 +56,7 @@
   <text x="410" y="606" class="m">pass 0.8–1.2 · hubs ≥ 6</text>
   <text x="410" y="628" class="m">fast ≤ 2 дня · cycles ≤ 4</text>
   <text x="410" y="660" class="s">пересчёт всего пайплайна</text>
-  <text x="410" y="680" class="s">≈ 2 с (CSV) / 15 с (с БД)</text>
+  <text x="410" y="680" class="s">≈ 3 с (--fast) · 20 с полный</text>
 
   <!-- 3 roles -->
   <rect x="720" y="170" width="350" height="250" class="box"/>
@@ -74,6 +74,7 @@
   <text x="744" y="476" class="h">clusters.py</text>
   <text x="744" y="504" class="s">Louvain, вес = log(1 + сумма)</text>
   <text x="744" y="528" class="s">гипотеза кластера по составу ролей</text>
+  <text x="744" y="548" class="s" fill="#1b998b">устойчивость ролей: 60 прогонов ±20%</text>
   <rect x="720" y="580" width="350" height="150" class="box"/>
   <text x="744" y="616" class="h">priority.py</text>
   <text x="744" y="644" class="s">0.35 роль + 0.25 оборот</text>
@@ -87,22 +88,22 @@
   <text x="1144" y="236" class="m">nodes_roles.csv   2 248 строк</text>
   <text x="1144" y="260" class="m">clusters.csv      гипотезы</text>
   <text x="1144" y="284" class="m">top_nodes.csv     топ-30 + why</text>
-  <text x="1144" y="308" class="m">next_requests.csv белые пятна</text>
+  <text x="1144" y="308" class="m">+ next_requests · routes · splitting</text>
 
   <rect x="1120" y="340" width="420" height="80" class="box"/>
-  <text x="1144" y="374" class="h">PostgreSQL → FastAPI</text>
-  <text x="1144" y="400" class="s">REST: граф, узел, окрестность, путь, устойчивость</text>
+  <text x="1144" y="374" class="h">PostgreSQL / DuckDB → FastAPI</text>
+  <text x="1144" y="400" class="s">без БД — локальные parquet; отметки аналитика</text>
 
   <rect x="1120" y="440" width="420" height="160" class="box"/>
   <text x="1144" y="476" class="h">Интерфейс аналитика (HTML/JS)</text>
   <text x="1144" y="504" class="s">• схема сети: направление потоков, роли, кластеры</text>
   <text x="1144" y="528" class="s">• поиск gid → карточка узла с обоснованием</text>
   <text x="1144" y="552" class="s">• топ-лист · кластеры · пробелы в данных</text>
-  <text x="1144" y="576" class="s">• устойчивость: блокировка топ-N</text>
+  <text x="1144" y="576" class="s">• проигрыватель июля · санкей · PDF-справка</text>
 
   <rect x="1120" y="620" width="420" height="110" class="box" fill="#eef2ff" stroke="#b9c6f5"/>
   <text x="1144" y="656" class="h">AI-ассистент (OpenAI / NVIDIA)</text>
-  <text x="1144" y="682" class="s">function calling → 9 функций графа</text>
+  <text x="1144" y="682" class="s">function calling → 12 функций графа</text>
   <text x="1144" y="706" class="s">ответы только по данным, со ссылками на gid</text>
 
   <!-- arrows -->

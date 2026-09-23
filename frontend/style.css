@@ -103,3 +103,33 @@ aside.right { border-left: 1px solid var(--line); padding: 16px; }
 .note { color: var(--muted); font-size: 12px; }
 .req { font-size: 11px; font-weight: 600; color: var(--warn); }
 .cyc { font-family: var(--mono); font-size: 11px; background: var(--bg); border-radius: 6px; padding: 5px 7px; margin-bottom: 4px; word-break: break-all; }
+
+/* разложение приоритета */
+.decomp { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 12px; }
+.decomp .r { display: grid; grid-template-columns: 130px 1fr 42px; gap: 8px; align-items: center; font-size: 12px; }
+.decomp .t { height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; }
+.decomp .t i { display: block; height: 100%; border-radius: 5px; }
+.decomp .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.stab { font-size: 12px; margin: -4px 0 10px; }
+.stab b { font-variant-numeric: tabular-nums; }
+/* отметки аналитика */
+.markbox { border: 1px dashed var(--line); border-radius: 10px; padding: 8px; margin: 10px 0; display: flex; flex-direction: column; gap: 6px; }
+.markbox .row { display: flex; gap: 6px; flex-wrap: wrap; }
+.markbox button { font-size: 12px; padding: 4px 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); }
+.markbox button.on.confirmed { background: #1b998b; color: #fff; border-color: #1b998b; }
+.markbox button.on.review { background: #b54708; color: #fff; border-color: #b54708; }
+.markbox button.on.rejected { background: #6b7385; color: #fff; border-color: #6b7385; }
+.markbox input { padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); }
+.mk { font-size: 13px; }
+/* проигрыватель */
+.player { position: absolute; left: 50%; transform: translateX(-50%); bottom: 14px; background: var(--panel); border: 1px solid var(--line);
+          border-radius: 12px; padding: 8px 12px; display: flex; gap: 10px; align-items: center; box-shadow: 0 6px 24px rgba(0,0,0,.12); z-index: 5; }
+.player input[type=range] { width: 260px; }
+.player #pl-label { min-width: 70px; font-variant-numeric: tabular-nums; }
+/* санкей */
+.sankey { position: absolute; inset: 49px 0 0 0; background: var(--panel); z-index: 4; overflow: auto; }
+.sankey svg { display: block; }
+.sankey text { fill: var(--ink); font-size: 11px; }
+.sankey .muted { fill: var(--muted); }
+.sankey path:hover { opacity: .85 !important; }
+.player.hidden, .sankey.hidden { display: none; }

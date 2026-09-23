@@ -34,4 +34,7 @@ def load_all(dsn: str, tables: dict):
         cur.execute('CREATE INDEX ON transactions (src)')
         cur.execute('CREATE INDEX ON transactions (dst)')
         cur.execute('CREATE INDEX ON nodes (cluster_id)')
+        # отметки аналитика НЕ пересоздаются при пересчёте — это рабочие данные
+        cur.execute("""CREATE TABLE IF NOT EXISTS analyst_marks (
+                         gid TEXT PRIMARY KEY, status TEXT, comment TEXT, updated_at TIMESTAMP)""")
         conn.commit()

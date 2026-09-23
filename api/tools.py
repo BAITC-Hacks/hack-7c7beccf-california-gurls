@@ -123,3 +123,28 @@ def find_splitting(gid: str | None = None, n: int = 20) -> dict:
     else:
         rows = store.q("SELECT * FROM splitting ORDER BY pair_split_days DESC, n_tx DESC LIMIT %s", (min(int(n), 50),))
     return {"gid": gid, "episodes": rows, "n_episodes": len(rows)}
+
+
+def find_routes(gid: str | None = None, n: int = 20) -> dict:
+    """Повторяющиеся маршруты A→B→C (A платит B, B в течение 3 дней платит C, повторилось ≥3 раз)."""
+    if gid:
+        rows = store.q("""SELECT * FROM routes WHERE a = %s OR b = %s OR c = %s
+                          ORDER BY repeats DESC LIMIT %s""", (int(gid), int(gid), int(gid), min(int(n), 50)))
+    else:
+        rows = store.q("SELECT * FROM routes ORDER BY repeats DESC, sum_bc DESC LIMIT %s", (min(int(n), 50),))
+    return {"gid": gid, "routes": rows}
+
+
+def anomalies(n: int = 20) -> list:
+    """Узлы, чьи денежные показатели аномальны для своего колена (robust z-score)."""
+    return store.q("""SELECT gid, role, depth, anomaly_score, anomaly_text, priority_score FROM nodes
+                      WHERE anomaly ORDER BY anomaly_score DESC LIMIT %s""", (min(int(n), 50),))
+
+
+def money_flows() -> dict:
+    """Потоки денег по коленам и ролям: откуда (колено, роль) → куда (колено, роль), сумма."""
+    rows = store.q("""SELECT s.depth AS d1, s.role AS r1, t.depth AS d2, t.role AS r2,
+                             sum(e.sum_kzt) AS sum_kzt, count(*) AS n_edges
+                      FROM edges e JOIN nodes s ON s.gid = e.src JOIN nodes t ON t.gid = e.dst
+                      GROUP BY s.depth, s.role, t.depth, t.role""")
+    return {"flows": rows}
