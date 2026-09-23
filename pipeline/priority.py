@@ -45,6 +45,9 @@ def why(x) -> str:
         parts.append(f"{x.fast_share:.0%} входящих уходит дальше за ≤2 дня")
     if x.max_payers_same_day >= 3:
         parts.append(f"до {x.max_payers_same_day} плательщиков в один день")
+    if x.split_out + x.split_in:
+        parts.append(f"признаки дробления: {x.split_out + x.split_in} эпизодов, {x.split_tx} переводов "
+                     f"(несколько платежей одному получателю в один день)")
     if x.cycles:
         parts.append(f"участвует в {x.cycles} возвратных цепочках (деньги возвращаются к отправителю)")
     if x.is_seed:

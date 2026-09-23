@@ -114,3 +114,12 @@ def find_cycles(gid: str, max_len: int = 4) -> dict:
 def next_requests(n: int = 15) -> list:
     """Какие данные запросить следующими, чтобы закрыть белые пятна выгрузки."""
     return store.q("SELECT * FROM next_requests LIMIT %s", (min(int(n), 50),))
+
+
+def find_splitting(gid: str | None = None, n: int = 20) -> dict:
+    """Дробление: несколько переводов одной паре в один день. Для узла или топ по сети."""
+    if gid:
+        rows = store.q("SELECT * FROM splitting WHERE src = %s OR dst = %s ORDER BY day", (int(gid), int(gid)))
+    else:
+        rows = store.q("SELECT * FROM splitting ORDER BY pair_split_days DESC, n_tx DESC LIMIT %s", (min(int(n), 50),))
+    return {"gid": gid, "episodes": rows, "n_episodes": len(rows)}

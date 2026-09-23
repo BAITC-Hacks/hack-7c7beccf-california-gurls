@@ -3,8 +3,16 @@ LLM НЕ участвует в расчёте ролей: она только в
 Работает только при наличии ключа выбранного провайдера; пайплайн и интерфейс без него работают полностью."""
 import json
 import os
+from pathlib import Path
 
 from . import store, tools
+
+# .env из корня проекта подхватывается и при локальном запуске (uvicorn), и в Docker
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=False)
+except ImportError:
+    pass
 
 # Любой OpenAI-совместимый провайдер: OpenAI или NVIDIA (build.nvidia.com), выбирается в .env
 PROVIDERS = {
@@ -52,6 +60,8 @@ TOOLS_SPEC += [
     {"name": "find_cycles", "description": "Возвратные потоки: цепочки через узел, где деньги возвращаются к отправителю",
      "parameters": {"type": "object", "properties": {"gid": {"type": "string"}, "max_len": {"type": "integer"}},
                     "required": ["gid"]}},
+    {"name": "find_splitting", "description": "Дробление сумм: ≥3 перевода одному получателю в один день. С gid — по узлу, без — самые выраженные в сети",
+     "parameters": {"type": "object", "properties": {"gid": {"type": "string"}, "n": {"type": "integer"}}}},
     {"name": "next_requests", "description": "Белые пятна: какие выгрузки запросить дальше и почему",
      "parameters": {"type": "object", "properties": {"n": {"type": "integer"}}}},
 ]

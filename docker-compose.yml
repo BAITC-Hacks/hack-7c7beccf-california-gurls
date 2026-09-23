@@ -15,9 +15,7 @@ services:
       db: { condition: service_healthy }
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/moneygraph
-    env_file:
-      - path: .env
-        required: false
+    env_file: .env
     ports: ["8000:8000"]
     volumes:
       - ./data:/app/data

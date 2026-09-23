@@ -133,7 +133,8 @@ async function renderCard(gid) {
   if (n.is_seed) caveats.push("seed: входящие переводы в выгрузке занижены");
   if (n.truncated) caveats.push("4-е колено: исходящие переводы не выгружались");
   else if (n.out_sum > n.in_sum * 1.2 && n.in_sum > 0) caveats.push("отдаёт больше, чем видно на входе — есть источники вне выборки");
-  const pr = n.pass_ratio == null ? "—" : Math.round(n.pass_ratio * 100) + "%";
+  const incomplete = n.is_seed || (n.in_sum > 0 && n.out_sum > n.in_sum * 1.2);
+  const pr = n.pass_ratio == null ? "—" : incomplete ? "н/д · вход неполон" : Math.round(n.pass_ratio * 100) + "%";
   const flows = (list, dir) => list.slice(0, 12).map(f => `
     <div class="flow" data-gid="${f.gid}"><span>${dir}</span>${badge(f.role)}<span class="gid">${short(f.gid)}</span>
     ${f.is_seed ? '<span class="badge seed">seed</span>' : ""}<span class="amt">${money(f.sum_kzt)}${f.n_tx > 1 ? " ×" + f.n_tx : ""}</span></div>`).join("")
@@ -150,7 +151,8 @@ async function renderCard(gid) {
       <span class="badge" style="background:${clusterColor(n.cluster_id)}">кластер ${n.cluster_id}</span>
       <span class="badge" style="background:#555">колено ${n.depth}</span>
       ${n.second_level ? '<span class="badge" style="background:#7a0f1f">сборщик 2-го уровня</span>' : ""}
-      ${n.cycles ? `<span class="badge" style="background:#b54708">циклов: ${n.cycles}</span>` : ""}</div>
+      ${n.cycles ? `<span class="badge" style="background:#b54708">циклов: ${n.cycles}</span>` : ""}
+      ${n.split_out + n.split_in ? `<span class="badge" style="background:#6d28d9">дробление: ${n.split_out + n.split_in}</span>` : ""}</div>
     <div class="evidence">${esc(n.evidence)}</div>
     ${caveats.map(c => `<div class="caveat">⚠ ${c}</div>`).join("")}
     <div class="metrics">
@@ -164,19 +166,31 @@ async function renderCard(gid) {
       <div><small>Макс. плательщиков в день</small><b>${n.max_payers_same_day}</b></div>
       <div><small>Платят узлы-хабы</small><b>${n.hub_payers}</b></div>
       <div><small>Возвратные цепочки / встречные</small><b>${n.cycles} / ${n.reciprocal}</b></div>
+      <div><small>Эпизоды дробления (отпр. / получ.)</small><b>${n.split_out} / ${n.split_in}</b></div>
+      <div><small>Доля переводов 5–10 тыс ₸</small><b>${Math.round(n.near_threshold_share * 100)}%</b></div>
     </div>
     <div style="display:flex;gap:6px">
       <button class="btn" id="btn-ego">Окрестность</button>
       <button class="btn ghost" id="btn-ai">AI-справка</button>
+      <button class="btn ghost" id="btn-pdf">PDF</button>
     </div>
     <div id="ai-card"></div>
     <h3>Активность по дням (июль) — вход / выход</h3><div class="bars">${bars}</div>
     <div id="cycles"></div>
+    <div id="splits"></div>
     <h3>Входящие (${n.incoming.length})</h3><div class="flows">${flows(n.incoming, "←") || "<small>нет в выгрузке</small>"}</div>
     <h3>Исходящие (${n.outgoing.length})</h3><div class="flows">${flows(n.outgoing, "→") || "<small>нет в выгрузке</small>"}</div>
   </div>`;
   $("#card").querySelectorAll(".flow").forEach(el => el.onclick = () => select(el.dataset.gid));
   $("#btn-ego").onclick = () => { state.mode = "ego"; drawEgo(gid); };
+  $("#btn-pdf").onclick = () => window.open("report.html?gid=" + gid, "_blank");
+  if (n.split_out + n.split_in) {
+    const sp = await api("splitting?gid=" + gid);
+    $("#splits").innerHTML = `<h3>Дробление (${sp.n_episodes})</h3>` + sp.episodes.slice(0, 6).map(e =>
+      `<div class="cyc">${e.day} · ${e.src === gid ? "→ " + `<a data-gid="${e.dst}">${short(e.dst)}</a>` : `<a data-gid="${e.src}">${short(e.src)}</a>` + " →"}
+       <b>${e.n_tx} перев.</b> на ${money(e.sum_kzt)} <span style="color:var(--muted)">(${money(e.min_kzt)}–${money(e.max_kzt)})</span></div>`).join("");
+    bindLinks($("#splits"));
+  }
   if (n.cycles) {
     const c = await api("cycles/" + gid);
     $("#cycles").innerHTML = `<h3>Возвратные потоки (${c.n_cycles})</h3>` + c.cycles.slice(0, 5).map(x =>

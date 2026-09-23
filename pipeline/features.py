@@ -43,6 +43,21 @@ def fast_forward_share(tx: pd.DataFrame, days: int) -> pd.Series:
     return (g.apply(lambda x: x.loc[x.is_fast, "s_in"].sum() / x.s_in.sum(), include_groups=False))
 
 
+def splitting_episodes(tx: pd.DataFrame, cfg: dict) -> pd.DataFrame:
+    """Эпизоды дробления: ≥N переводов между одной парой в один день."""
+    c = cfg.get("splitting", {"min_tx_per_day": 3, "near_threshold_max": 10000})
+    t = tx.assign(day=tx.date.dt.date)
+    g = (t.groupby(["src", "dst", "day"])
+          .agg(n_tx=("sum_kzt", "size"), sum_kzt=("sum_kzt", "sum"), min_kzt=("sum_kzt", "min"),
+               max_kzt=("sum_kzt", "max"),
+               near_threshold=("sum_kzt", lambda x: int((x <= c["near_threshold_max"]).sum())))
+          .reset_index())
+    g = g[g.n_tx >= c["min_tx_per_day"]].copy()
+    days = g.groupby(["src", "dst"]).day.transform("nunique")
+    g["pair_split_days"] = days  # в скольких разных днях пара дробила переводы
+    return g.sort_values(["pair_split_days", "n_tx"], ascending=False).reset_index(drop=True)
+
+
 def node_features(nodes, edges, tx, G, cfg) -> pd.DataFrame:
     f = nodes.set_index("gid").copy()
     f["is_seed"] = f.is_seed.astype(bool)
@@ -73,6 +88,18 @@ def node_features(nodes, edges, tx, G, cfg) -> pd.DataFrame:
     f["active_days"] = (pd.concat([tx[["src", "date"]].rename(columns={"src": "gid"}),
                                    tx[["dst", "date"]].rename(columns={"dst": "gid"})])
                         .groupby("gid").date.nunique().reindex(f.index).fillna(0).astype(int))
+
+    # дробление сумм
+    ep = splitting_episodes(tx, cfg)
+    f["split_out"] = ep.groupby("src").size().reindex(f.index).fillna(0).astype(int)
+    f["split_in"] = ep.groupby("dst").size().reindex(f.index).fillna(0).astype(int)
+    f["split_tx"] = (ep.groupby("src").n_tx.sum().reindex(f.index).fillna(0)
+                     + ep.groupby("dst").n_tx.sum().reindex(f.index).fillna(0)).astype(int)
+    thr = cfg.get("splitting", {}).get("near_threshold_max", 10000)
+    all_tx = pd.concat([tx[["src", "sum_kzt"]].rename(columns={"src": "gid"}),
+                        tx[["dst", "sum_kzt"]].rename(columns={"dst": "gid"})])
+    f["near_threshold_share"] = (all_tx.assign(n=all_tx.sum_kzt <= thr).groupby("gid").n.mean()
+                                 .reindex(f.index).fillna(0).round(3))
 
     # центральность: PageRank по направлению денег (вес = сумма) и betweenness
     pr = nx.pagerank(G, weight="sum_kzt")

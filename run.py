@@ -53,6 +53,7 @@ def main():
     ct = clusters.cluster_table(f, edges)
     top = priority.top_nodes(f, cfg["top_n"])
     nxt = priority.next_requests(f, edges, cfg.get("next_requests_n", 40))
+    split = features.splitting_episodes(tx, cfg)
     f.index.name = "gid"
     fr = f.reset_index()
 
@@ -64,6 +65,7 @@ def main():
     # --- расширенные метрики (для интерфейса и разбора) ---
     fr.to_csv(out / "nodes_metrics.csv", index=False)
     nxt.to_csv(out / "next_requests.csv", index=False)
+    split.to_csv(out / "splitting.csv", index=False)
     step(f"CSV записаны в {out}/")
 
     if a.db:
@@ -78,6 +80,7 @@ def main():
             "clusters": (ct, "cluster_id"),
             "top_nodes": (top, "rank"),
             "next_requests": (nxt, None),
+            "splitting": (split.assign(day=split.day.astype(str)), None),
         })
         step("загружено в PostgreSQL")
     step("готово")

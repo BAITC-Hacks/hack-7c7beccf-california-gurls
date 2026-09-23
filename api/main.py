@@ -76,6 +76,11 @@ def cycles(gid: str):
     return tools.find_cycles(gid)
 
 
+@app.get("/api/splitting")
+def splitting(gid: str | None = None, n: int = 20):
+    return tools.find_splitting(gid, n)
+
+
 @app.get("/api/resilience")
 def resilience(top_n: int = 10):
     return tools.simulate_removal(top_n=top_n)

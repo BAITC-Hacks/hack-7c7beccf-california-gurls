@@ -115,6 +115,8 @@ def evidence(x) -> str:
         else:
             s = (f"Признаков роли не выявлено: вход {x.in_deg} ({money(x.in_sum)}), "
                  f"выход {x.out_deg} ({money(x.out_sum)}){seed_note}")
+    if (x.split_out + x.split_in) and len(s) < 150:
+        s += f"; дробление: {x.split_out + x.split_in} эпиз. (≥3 перевода одному получателю в день)"
     if x.reciprocal and len(s) < 160:
         s += f"; встречные переводы: {x.reciprocal} контрагент(ов)"
     return s[:200]
