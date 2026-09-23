@@ -4,13 +4,17 @@
 """
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import assistant, store, tools, whatif
+from pipeline import integrity
 
-app = FastAPI(title="Tamyr — HackAlem AI")
+from . import assistant, audit, security, store, tools, whatif
+
+ROOT = Path(__file__).resolve().parent.parent
+app = FastAPI(title="Tamyr — HackAlem AI", docs_url=None, redoc_url=None, openapi_url=None)  # схему API не публикуем
+app.add_middleware(security.SecurityMiddleware)
 
 
 def _gid(gid: str) -> str:
@@ -56,11 +60,13 @@ def full_graph():
 
 
 @app.get("/api/node/{gid}")
-def node(gid: str):
+def node(gid: str, request: Request, ctx: str = "card"):
     gid = _gid(gid)
     n = store.node(gid)
     if not n:
         raise HTTPException(404, "узел не найден")
+    if ctx in ("card", "dossier", "report"):      # просмотр карточки клиента фиксируется в журнале
+        audit.record(security.analyst(request), f"view_{ctx}", gid)
     return {**n, **store.neighbors(gid), "transactions": store.transactions(gid)}
 
 
@@ -141,12 +147,15 @@ class WhatIf(BaseModel):
 
 
 @app.post("/api/whatif")
-def whatif_run(w: WhatIf):
+def whatif_run(w: WhatIf, request: Request):
     allowed = {f"{k['section']}.{k['key']}" for k in whatif.knobs()}
     bad = set(w.overrides) - allowed
     if bad:
         raise HTTPException(400, f"неизвестные пороги: {', '.join(sorted(bad))}")
-    return whatif.run(w.overrides)
+    r = whatif.run(w.overrides)
+    if w.overrides:
+        audit.record(security.analyst(request), "whatif", "", {"overrides": w.overrides, "changed": r["changed"]})
+    return r
 
 
 class Mark(BaseModel):
@@ -160,11 +169,14 @@ def marks():
 
 
 @app.post("/api/marks/{gid}")
-def set_mark(gid: str, m: Mark):
+def set_mark(gid: str, m: Mark, request: Request):
     gid = _gid(gid)
     if m.status not in (None, "", "clear", "confirmed", "rejected", "review"):
         raise HTTPException(400, "status: confirmed | rejected | review | clear")
-    return {"gid": gid, "mark": store.set_mark(gid, m.status, m.comment)}
+    comment = (m.comment or "")[:500]
+    mark = store.set_mark(gid, m.status, comment)
+    audit.record(security.analyst(request), "mark", gid, {"status": m.status or "clear", "comment": comment})
+    return {"gid": gid, "mark": mark}
 
 
 @app.get("/api/resilience")
@@ -177,7 +189,9 @@ class Chat(BaseModel):
 
 
 @app.post("/api/assistant")
-def ask(chat: Chat):
+def ask(chat: Chat, request: Request):
+    last = next((m.get("content", "") for m in reversed(chat.messages) if m.get("role") == "user"), "")
+    audit.record(security.analyst(request), "assistant", "", {"question": str(last)[:300]})
     try:
         return assistant.ask(chat.messages)
     except RuntimeError as e:          # нет ключа или провайдер недоступен
@@ -185,12 +199,35 @@ def ask(chat: Chat):
 
 
 @app.post("/api/node/{gid}/card")
-def card(gid: str):
+def card(gid: str, request: Request):
     gid = _gid(gid)
+    audit.record(security.analyst(request), "ai_card", gid)
     try:
         return assistant.node_card(gid)
     except RuntimeError as e:
         raise HTTPException(503, str(e))
+
+
+# ---------- безопасность и комплаенс ----------
+@app.get("/api/audit")
+def audit_log(n: int = 100):
+    return audit.recent(_n(n, 1000))
+
+
+@app.get("/api/audit/verify")
+def audit_verify():
+    return audit.verify()
+
+
+@app.get("/api/integrity")
+def integrity_check():
+    """Сверка входных данных, конфига, кода и выгрузок с отпечатками SHA-256 из output/manifest.json."""
+    return integrity.verify(ROOT, ROOT / "output" / "manifest.json")
+
+
+@app.get("/api/security")
+def security_status():
+    return {**security.status(), "storage": store.backend(), "llm_pseudonymization": True}
 
 
 app.mount("/", StaticFiles(directory=Path(__file__).parent.parent / "frontend", html=True), name="frontend")

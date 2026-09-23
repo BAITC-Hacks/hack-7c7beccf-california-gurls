@@ -1,0 +1,34 @@
+{
+ "created_at": "2026-09-23T10:58:24+00:00",
+ "python": "3.11.15",
+ "inputs": {
+  "data/edges.parquet": "4e71dde5cd3115bcb26e91202665532ee6581cf8233a9fc8059ea59fb7358a38",
+  "data/nodes.parquet": "d2a45b0df6e9352832d5fb09839d10b9e23f898156c3bab263b051b31cc0296d",
+  "data/transactions.parquet": "c30c5317b5439591dde86f2058dc47a3d19b2900c055ded994fe547f6fb7e7da"
+ },
+ "config": {
+  "pipeline/config.yaml": "e45171603522f36cbd0121d8632476f54ca5c9645192d827afac5e86f8eef777"
+ },
+ "code": {
+  "pipeline/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "pipeline/clusters.py": "4fbe30055b2952249dad613c4aecaa3699e522a32f577074152b383cb9fbb91a",
+  "pipeline/core.py": "84f49e4e62eb0e64a47e8fa0a1b5e9a9f0e7d98d9753031b7f3fa559b2557123",
+  "pipeline/db.py": "3727a478f325ec533ab298f34d480610afb1cbd8d7e0aeb138d8e5460023a2eb",
+  "pipeline/extra.py": "4119b34d626407110df7fd79ff6910cd0bb46f59e086ed6c4c851770d9ad6de7",
+  "pipeline/features.py": "65b20e690d292297d1d70589e3271266af1b63c7781afb1069a23d5e1eefe283",
+  "pipeline/integrity.py": "e8bf9449d86ac3a2c2ddd84ee2b8999b9b05d67fe1077a572d5767d3c735f87d",
+  "pipeline/priority.py": "2658d157b2e93d6e897b0d19d148448008d9032d862ebd4ad2b4a4df8ed337d8",
+  "pipeline/roles.py": "b90d5e446c3b190e0f7dfff7f0b324cfc18562dcc24ec69171e6e1c1db8a7cc3",
+  "run.py": "c80393896ff846439dcd3c0c53ce1cf9ef57a0abc67e3aaad439bc8d3b0d1ea8"
+ },
+ "outputs": {
+  "output/clusters.csv": "450f7f16d657df1ec07e8a5de7da4275b7a244d9ee2d100b06a3037551355760",
+  "output/next_requests.csv": "78e05bb94ef04529f6d028b7ac2df0a168f9ce5651b4cb9c9928b7b0dc2760fe",
+  "output/nodes_metrics.csv": "8918a07dc4c5b482f06241179a6aab0dbbed69990e693fd6738db0c791c5ba52",
+  "output/nodes_roles.csv": "994c03e03c573715d5a45a9aa7ee0cce66acaee7a90c440f8d09d25c6b2d225d",
+  "output/routes.csv": "c9a7d13585515b335549ae92297596b81779d33fac5064a75a27ca2df494a9b8",
+  "output/splitting.csv": "75de4c010a4f258e1f45db6782c40b2e5b4f192b5f7c161dca62ab702379b12a",
+  "output/top_nodes.csv": "ae8e2541d9e14a0c8eaa8e5d2941c1a15ed2300f28e115aed38fe8c3d48d399f"
+ },
+ "run_fingerprint": "195dea91f752a41334617c253669435cbc205cff42249a3f296bf98ba1d61da4"
+}

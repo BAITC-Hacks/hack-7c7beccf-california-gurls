@@ -21,6 +21,9 @@
     <div id="search-results" class="dropdown hidden"></div>
   </div>
   <div class="top-right">
+    <label class="chip analyst" title="Имя попадает в журнал действий">Аналитик
+      <input id="analyst" placeholder="имя" maxlength="64" autocomplete="off"></label>
+    <span id="integrity" class="chip" title="Сверка данных, конфига и кода с отпечатками SHA-256">целостность…</span>
     <span id="storage" class="chip"></span>
     <span class="chip period">Июль 2026 · ≥5 000 ₸</span>
   </div>
@@ -35,6 +38,7 @@
       <button data-tab="clusters">Кластеры</button>
       <button data-tab="gaps">Пробелы</button>
       <button data-tab="chat">Ассистент</button>
+      <button data-tab="audit">Журнал</button>
     </nav>
     <section id="tab-top" class="tab active">
       <div class="status-tabs" id="status-tabs">
@@ -59,6 +63,11 @@
     <section id="tab-gaps" class="tab">
       <div class="note">Какие выгрузки запросить следующими, чтобы закрыть белые пятна</div>
       <div id="gaps-list" class="list"></div>
+    </section>
+    <section id="tab-audit" class="tab">
+      <div id="audit-status" class="res"></div>
+      <div class="note">Кто, когда и что смотрел или менял. Каждая запись содержит хеш предыдущей — правку задним числом видно при проверке.</div>
+      <div id="audit-list" class="list"></div>
     </section>
     <section id="tab-chat" class="tab">
       <div id="chat-log" class="chat-log">
@@ -120,6 +129,7 @@
 
 <div id="tip" class="tip hidden"></div>
 <script src="vendor/cytoscape.min.js"></script>
+<script src="net.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

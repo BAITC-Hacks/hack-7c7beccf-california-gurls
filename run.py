@@ -5,13 +5,14 @@
     python run.py --fast                   # только CSV: без укладки и проверки устойчивости (~3 с)
 """
 import argparse
+import json
 import os
 import time
 from pathlib import Path
 
 import yaml
 
-from pipeline import core, features
+from pipeline import core, features, integrity
 
 NODE_COLS = ["gid", "role", "role_score", "cluster_id", "priority_score", "evidence"]
 
@@ -63,6 +64,12 @@ def main():
             df.to_parquet(out / "db" / f"{name}.parquet", index=False)
     print(f"выгрузки записаны в {out}/" + ("" if with_ui else " (режим --fast: таблицы интерфейса не обновлялись)"),
           flush=True)
+
+    # отпечатки целостности: какие данные, конфиг и код дали эти выводы
+    root = Path(__file__).resolve().parent
+    man = integrity.build_manifest(root, Path(data_dir), out, Path(a.config))
+    (out / "manifest.json").write_text(json.dumps(man, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"отпечаток прогона SHA-256: {man['run_fingerprint'][:16]}…", flush=True)
 
     if a.db:
         from pipeline import db

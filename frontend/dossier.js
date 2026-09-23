@@ -8,7 +8,8 @@ const IN = "#2EBD85", OUT = "#F6465D", ACC = "#F0B429";
 const PR_COLORS = ["#3987e5", "#d95926", "#199e70", "#c98500"];   // 4 слота проверенной палитры
 const gid = new URLSearchParams(location.search).get("gid");
 const $ = s => document.querySelector(s);
-const api = async p => { const r = await fetch("/api/" + p); if (!r.ok) throw new Error((await r.json()).detail || r.status); return r.json(); };
+const api = TAMYR.api;
+document.getElementById("btn-print").addEventListener("click", () => window.print());
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const money = x => x >= 1e6 ? (x / 1e6).toFixed(1).replace(".", ",") + " млн ₸" : x >= 1e3 ? Math.round(x / 1e3) + " тыс ₸" : Math.round(x) + " ₸";
 const short = g => "…" + g.slice(-9, -3);
@@ -29,9 +30,10 @@ document.addEventListener("mousemove", e => {
 
 async function main() {
   const [n, top, clusters, gaps, routes, split] = await Promise.all([
-    api("node/" + gid), api("top?n=50"), api("clusters"), api("next_requests?n=50"),
+    api("node/" + gid + "?ctx=dossier"), api("top?n=50"), api("clusters"), api("next_requests?n=50"),
     api("routes?gid=" + gid + "&n=50"), api("splitting?gid=" + gid)]);
   let cfg = null; try { cfg = await api("config"); } catch (e) {}
+  let integ = null; try { integ = await api("integrity"); } catch (e) {}
   const cyc = n.cycles ? await api("cycles/" + gid) : { cycles: [], n_cycles: 0 };
   const rank = top.find(t => t.gid === gid);
   const cl = clusters.find(c => c.cluster_id === n.cluster_id) || {};
@@ -119,7 +121,9 @@ async function main() {
       <div class="sub">Следующие шаги для аналитика</div>
       <ul class="recs">${recs(n, gaps, cps).map(r => `<li>${r}</li>`).join("")}</ul></div>
   </div>
-  <div class="disc">Досье сформировано автоматически инструментом Tamyr по обезличенной выгрузке внутрибанковских переводов ≥5 000 ₸ за июль 2026.
+  <div class="disc">${integ ? `Отпечаток прогона SHA-256: <span class="mono">${integ.run_fingerprint.slice(0, 16)}</span> ·
+    ${integ.ok ? `данные, конфиг и код не изменялись после расчёта (${integ.files_checked} файлов)` : "<b style='color:var(--out)'>внимание: файлы изменены после расчёта</b>"} ·
+    сформировал: ${esc(TAMYR.analyst || "аноним")}<br>` : ""}Досье сформировано автоматически инструментом Tamyr по обезличенной выгрузке внутрибанковских переводов ≥5 000 ₸ за июль 2026.
     Роли определены формальными правилами (см. README). Все выводы — гипотезы для проверки, а не утверждение о причастности клиента к противоправной деятельности.</div>`;
 }
 

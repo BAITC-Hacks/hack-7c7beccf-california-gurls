@@ -14,7 +14,7 @@ const PALETTE = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300
 const clusterColor = c => c >= 1 && c <= 8 ? PALETTE[c - 1] : "#4A5260";
 
 const $ = s => document.querySelector(s);
-const api = async (p, opt) => { const r = await fetch("/api/" + p, opt); if (!r.ok) throw new Error((await r.json()).detail || r.status); return r.json(); };
+const api = TAMYR.api;   // общий слой запросов: имя аналитика и токен доступа (net.js)
 const money = x => x >= 1e6 ? (x / 1e6).toFixed(1).replace(".", ",") + " млн ₸" : x >= 1e3 ? Math.round(x / 1e3) + " тыс ₸" : Math.round(x) + " ₸";
 const short = g => "…" + g.slice(-9, -3);
 const pill = (text, c) => `<span class="badge" style="color:${c};background:${c}1f;box-shadow:inset 0 0 0 1px ${c}55">${text}</span>`;
@@ -182,7 +182,7 @@ async function select(gid) {
 
 // ---------- карточка узла ----------
 async function renderCard(gid) {
-  const n = await api("node/" + gid);
+  const n = await api("node/" + gid + "?ctx=card");
   const caveats = [];
   if (n.is_seed) caveats.push("seed: входящие переводы в выгрузке занижены");
   if (n.truncated) caveats.push("4-е колено: исходящие переводы не выгружались");
@@ -558,6 +558,40 @@ async function drawSankey() {
   $("#graph-hint").textContent = "Потоки денег: куда уходят средства 81 seed по коленам и ролям";
 }
 
+// ---------- журнал действий и целостность ----------
+const ACTIONS = { view_card: "открыл карточку", view_dossier: "открыл досье", view_report: "открыл справку",
+  mark: "изменил статус", whatif: "лаборатория порогов", assistant: "вопрос ассистенту", ai_card: "AI-справка" };
+async function renderAudit() {
+  const [v, rows] = await Promise.all([api("audit/verify"), api("audit?n=150")]);
+  $("#audit-status").innerHTML = v.ok
+    ? `<b style="color:var(--in)">Цепочка журнала цела</b> · записей: <b>${v.records}</b><br><span class="note">последний хеш ${(v.last_hash || "").slice(0, 16)}…</span>`
+    : `<b style="color:var(--out)">Журнал изменён задним числом</b>: запись №${v.broken_at} — ${esc(v.reason)}`;
+  $("#audit-list").innerHTML = rows.map(r => {
+    let d = {}; try { d = JSON.parse(r.details || "{}"); } catch (e) {}
+    const det = r.action === "mark" ? `${({ confirmed: "подтверждено", review: "на проверке", rejected: "отклонено", clear: "снято" })[d.status] || d.status}${d.comment ? " · «" + esc(d.comment) + "»" : ""}`
+      : r.action === "whatif" ? `пороги ${esc(JSON.stringify(d.overrides))} → сменили роль ${d.changed}`
+      : r.action === "assistant" ? "«" + esc(d.question || "") + "»" : "";
+    return `<div class="aud"><div class="h"><b>${esc(r.actor)}</b>${ACTIONS[r.action] || r.action}
+        ${r.target ? `<a class="num" data-gid="${r.target}" style="cursor:pointer;color:var(--accent)">${short(r.target)}</a>` : ""}
+        <span class="ts">${r.ts.slice(5, 16).replace("T", " ")}</span></div>
+      ${det ? `<div class="d">${det}</div>` : ""}<div class="hash">#${r.id} · ${r.hash.slice(0, 12)}…</div></div>`;
+  }).join("") || '<div class="empty-list">Журнал пуст</div>';
+  bindLinks($("#audit-list"));
+}
+async function renderIntegrity() {
+  try {
+    const r = await api("integrity");
+    const el = $("#integrity");
+    el.classList.toggle("ok", r.ok); el.classList.toggle("bad", !r.ok);
+    el.textContent = r.ok ? `целостность ✓ ${r.run_fingerprint.slice(0, 8)}` : "файлы изменены после расчёта";
+    el.title = r.ok ? `Данные, конфиг, код и выгрузки совпадают с отпечатками SHA-256 (${r.files_checked} файлов)`
+                    : "Изменены: " + [...r.changed, ...r.missing].join(", ");
+  } catch (e) {}
+}
+$("#analyst").value = TAMYR.analyst;
+$("#analyst").onchange = e => TAMYR.setAnalyst(e.target.value);
+document.querySelector('[data-tab="audit"]').addEventListener("click", renderAudit);
+
 // ---------- лаборатория порогов ----------
 let KNOBS = null, labTimer = null, LAB_ROLES = null;
 async function openLab() {
@@ -616,5 +650,5 @@ $("#lab-reset").onclick = () => { KNOBS && openLab(); };
 (async () => {
   try { CFG = await api("config"); } catch (e) { /* без конфига просто не рисуем разложение */ }
   await loadMarks();
-  renderStats(); renderTop(); renderClusters(); renderGaps(); renderLegend(); initGraph();
+  renderStats(); renderTop(); renderClusters(); renderGaps(); renderLegend(); initGraph(); renderIntegrity();
 })();
