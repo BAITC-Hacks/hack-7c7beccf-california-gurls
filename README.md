@@ -247,6 +247,11 @@ priority ×= 0.75 для seed (уже известны — фокус на те�
 
 <p align="center"><img src="docs/screens/chain.png" alt="Цепочка денег на 2 шага" width="49%"> <img src="docs/screens/flows.png" alt="Потоки денег" width="49%"></p>
 
+**Адаптивный интерфейс:** три колонки на широком экране, выезжающая карточка на планшете, одна колонка
+с нижней навигацией «Список · Сеть · Клиент» на телефоне. Досье на телефоне прокручивает широкие диаграммы по горизонтали.
+
+<p align="center"><img src="docs/screens/mobile.png" alt="Tamyr на телефоне" width="100%"></p>
+
 **AI-ассистент** (OpenAI / NVIDIA, function calling): `get_node`, `get_neighbors`, `common_receivers`, `trace_path`,
 `top_nodes`, `cluster_summary`, `simulate_removal`, `find_cycles`, `find_splitting`, `find_routes`, `anomalies`, `next_requests`.
 В чате видна цепочка вызванных функций; формулировки — гипотезы.

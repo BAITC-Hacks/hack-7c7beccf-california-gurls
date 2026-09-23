@@ -172,8 +172,23 @@ function highlight(gid, center = true) {
 }
 function clearHL() { cy.elements().removeClass("hl faded focus"); }
 
+// ---------- адаптив: вид на телефоне и выезжающая карточка на планшете ----------
+const isPhone = () => matchMedia("(max-width: 760px)").matches;
+function setView(v) {
+  const m = $("#main");
+  m.classList.remove("view-list", "view-graph", "view-card"); m.classList.add("view-" + v);
+  document.querySelectorAll("#mobile-nav button").forEach(b => b.classList.toggle("active", b.dataset.view === v));
+  if (v === "graph" && cy) setTimeout(() => { cy.resize(); cy.fit(undefined, 30); }, 30);
+}
+document.querySelectorAll("#mobile-nav button").forEach(b => b.onclick = () => setView(b.dataset.view));
+function closeCard() { $("#main").classList.remove("card-open"); }
+$("#drawer-backdrop").onclick = closeCard;
+addEventListener("resize", () => cy && cy.resize());
+
 async function select(gid) {
   state.selected = gid;
+  $("#main").classList.add("card-open");
+  if (isPhone()) setView("card");
   if (state.mode === "flows") { $("#sankey").classList.add("hidden"); drawFull(); }
   document.querySelectorAll(".item").forEach(el => el.classList.toggle("sel", el.dataset.gid === gid));
   if (state.mode === "ego") await drawEgo(gid); else highlight(gid);
@@ -200,6 +215,7 @@ async function renderCard(gid) {
   const bars = days.map(d => `<div style="height:${100 * d.i / mx}%;background:#1b998b" title="вход ${money(d.i)}"></div><div style="height:${100 * d.o / mx}%;background:#d7263d" title="выход ${money(d.o)}"></div>`).join("");
 
   $("#card").innerHTML = `<div class="card">
+    <button class="btn ghost sm card-close" id="card-close" aria-label="Закрыть">Закрыть</button>
     <h2>${gid}</h2>
     <div class="tags">${badge(n.role)} ${n.is_seed ? '<span class="badge seed">seed</span>' : ""}
       ${pill("кластер " + n.cluster_id, "#9AA3AF")} ${pill("колено " + n.depth, "#9AA3AF")}
@@ -248,9 +264,10 @@ async function renderCard(gid) {
     <h3>Исходящие (${n.outgoing.length})</h3><div class="flows">${flows(n.outgoing, "→") || "<small>нет в выгрузке</small>"}</div>
   </div>`;
   $("#card").querySelectorAll(".flow").forEach(el => el.onclick = () => select(el.dataset.gid));
-  $("#btn-ego").onclick = () => { state.mode = "ego"; drawEgo(gid); };
+  $("#btn-ego").onclick = () => { state.mode = "ego"; if (isPhone()) setView("graph"); drawEgo(gid); };
   $("#btn-pdf").onclick = () => window.open("report.html?gid=" + gid, "_blank");
   $("#btn-dossier").onclick = () => window.open("dossier.html?gid=" + gid, "_blank");
+  $("#card-close").onclick = closeCard;
   renderDecomp(n);
   renderMarkBox(gid, n.mark);
   {  // маршруты: узел может быть в начале, середине или конце цепочки
