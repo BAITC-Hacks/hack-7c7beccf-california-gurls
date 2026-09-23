@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Граф денег — AML</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo">◈</span> Граф денег <small>восстановление структуры сети</small></div>
+  <div id="stats" class="stats"></div>
+  <div class="search">
+    <input id="search" placeholder="Поиск по gid…" autocomplete="off">
+    <div id="search-results" class="dropdown hidden"></div>
+  </div>
+</header>
+
+<main>
+  <aside class="left">
+    <nav class="tabs">
+      <button data-tab="top" class="active">Приоритеты</button>
+      <button data-tab="clusters">Кластеры</button>
+      <button data-tab="chat">Ассистент</button>
+    </nav>
+    <section id="tab-top" class="tab active">
+      <label class="chk"><input type="checkbox" id="hide-seed"> скрыть seed</label>
+      <ol id="top-list" class="list"></ol>
+    </section>
+    <section id="tab-clusters" class="tab">
+      <button id="btn-resilience" class="btn wide">Устойчивость: убрать топ-10</button>
+      <div id="resilience"></div>
+      <div id="cluster-list" class="list"></div>
+    </section>
+    <section id="tab-chat" class="tab">
+      <div id="chat-log" class="chat-log">
+        <div class="msg bot">Спросите про сеть: «кто собирает деньги с seed …?», «опиши кластер 2», «что будет, если заблокировать топ-5?»</div>
+      </div>
+      <form id="chat-form" class="chat-form">
+        <input id="chat-input" placeholder="Вопрос по графу…" autocomplete="off">
+        <button class="btn">→</button>
+      </form>
+    </section>
+  </aside>
+
+  <section class="center">
+    <div class="toolbar">
+      <div class="seg" id="mode">
+        <button data-mode="full" class="active">Вся сеть</button>
+        <button data-mode="ego">Окрестность узла</button>
+      </div>
+      <div class="seg" id="color-by">
+        <button data-c="role" class="active">Цвет: роль</button>
+        <button data-c="cluster">Цвет: кластер</button>
+      </div>
+      <div class="seg" id="hops">
+        <button data-h="1" class="active">1 шаг</button>
+        <button data-h="2">2 шага</button>
+      </div>
+      <span id="graph-hint" class="hint"></span>
+    </div>
+    <div id="cy"></div>
+    <div id="legend" class="legend"></div>
+  </section>
+
+  <aside class="right" id="card">
+    <div class="empty">Выберите узел на схеме, в топ-листе или через поиск</div>
+  </aside>
+</main>
+
+<script src="vendor/cytoscape.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

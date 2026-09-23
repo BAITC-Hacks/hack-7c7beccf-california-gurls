@@ -1,0 +1,46 @@
+# Все пороги и веса — здесь. Меняем пороги только тут, код не трогаем.
+
+data_dir: data
+out_dir: output
+truncation_depth: 4          # колено, на котором обход оборван (исходящие не выгружались)
+fast_days: 2                 # «сквозной транзит»: деньги ушли дальше за N дней
+
+roles:
+  coordinator:               # собирает И раздаёт: одновременно признаки консолидации и распределения
+    min_in_deg: 5
+    min_out_deg: 10
+  distributor:               # веерная рассылка
+    min_out_deg: 10
+  consolidator:              # сбор с нескольких плательщиков
+    min_in_deg: 5
+  transit:                   # пропускает дальше, не удерживая
+    pass_ratio_min: 0.8
+    pass_ratio_max: 1.2
+    min_in_sum: 50000
+  terminal:                  # деньги пришли и остались (только если исходящие реально наблюдаемы)
+    max_pass_ratio: 0.2
+    min_in_sum: 200000       # иначе — разовый мелкий получатель → peripheral
+    or_min_in_deg: 2
+  use_boundary_role: true    # доп. роль для узлов 4-го колена (исходящие не выгружались)
+
+priority:
+  role_weight:
+    coordinator: 1.0
+    consolidator: 0.85
+    distributor: 0.8
+    transit: 0.6
+    terminal: 0.45
+    boundary: 0.3
+    peripheral: 0.1
+  weights:                   # сумма = 1
+    role: 0.35
+    money: 0.25
+    seed_exposure: 0.2
+    centrality: 0.2
+  seed_multiplier: 0.75      # seed уже известны правоохранителям — фокус на тех, кто выше
+
+clustering:
+  resolution: 1.0
+  seed: 42
+
+top_n: 30
